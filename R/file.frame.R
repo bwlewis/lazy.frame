@@ -113,24 +113,24 @@
   tmp[,k,drop=drop]
 }
 
-Ops.file.frame = function(x,y) {
-  col = x$which
-  x$which = NULL
+Ops.file.frame = function(e1,e2) {
+  col = e1$which
+  e1$which = NULL
   OP <- switch(.Generic,"=="=1L,
                          "!="=2L,
                          ">="=3L,
                          "<="=4L,
                          ">"= 5L,
                          "<"= 6L)
-  if(!inherits(x,"file.frame")) stop("Left-hand side must be file.frame object")
-  if(!is.numeric(y)) stop("Sorry, right-hand side must be numeric only")
+  if(!inherits(e1,"file.frame")) stop("Left-hand side must be file.frame object")
+  if(!is.numeric(e2)) stop("Sorry, right-hand side must be numeric only")
   if(is.null(col)) stop("Can only compare a single column")
-  .Call("WHICH",x$data,
+  .Call("WHICH",e1$data,
                 as.integer(col),
-                as.integer(x$internalskip),
-                as.character(x$sep),
+                as.integer(e1$internalskip),
+                as.character(e1$sep),
                 OP,
-                as.numeric(y))
+                as.numeric(e2))
 }
 
 `dim.file.frame` = function(x)

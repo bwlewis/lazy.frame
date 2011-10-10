@@ -1,0 +1,119 @@
+% \VignetteIndexEntry{file.frame Manual}
+% \VignetteDepends{file.frame}
+% \VignettePackage{file.frame}
+\documentclass[12pt]{article}
+\usepackage{amsmath}
+\usepackage[pdftex]{graphicx}
+\usepackage{color}
+\usepackage{xspace}
+\usepackage{fancyvrb}
+\usepackage{fancyhdr}
+\usepackage[
+     colorlinks=true,
+     linkcolor=blue,
+     citecolor=blue,
+     urlcolor=blue]
+     {hyperref}
+\usepackage{lscape}
+\usepackage{Sweave}
+\usepackage{tabularx}
+\usepackage{listings}
+\usepackage{mdwlist}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% define new colors for use
+\definecolor{darkgreen}{rgb}{0,0.6,0}
+\definecolor{darkred}{rgb}{0.6,0.0,0}
+\definecolor{lightbrown}{rgb}{1,0.9,0.8}
+\definecolor{brown}{rgb}{0.6,0.3,0.3}
+\definecolor{darkblue}{rgb}{0,0,0.8}
+\definecolor{darkmagenta}{rgb}{0.5,0,0.5}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\newcommand{\bld}[1]{\mbox{\boldmath $#1$}}
+\newcommand{\shell}[1]{\mbox{$#1$}}
+\renewcommand{\vec}[1]{\mbox{\bf {#1}}}
+\newcommand{\ReallySmallSpacing}{\renewcommand{\baselinestretch}{.6}\Large\normalsize}
+\newcommand{\SmallSpacing}{\renewcommand{\baselinestretch}{1.1}\Large\normalsize}
+\def\tm{\leavevmode\hbox{$\rm {}^{TM}$}}
+
+
+\setlength{\oddsidemargin}{-.25 truein}
+\setlength{\evensidemargin}{0truein}
+\setlength{\topmargin}{-0.2truein}
+\setlength{\textwidth}{7 truein}
+\setlength{\textheight}{8.5 truein}
+\setlength{\parindent}{0.20truein}
+\setlength{\parskip}{0.10truein}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\pagestyle{fancy}
+\lhead{}
+\chead{The {\tt file.frame} Package}
+\rhead{}
+\lfoot{}
+\cfoot{}
+\rfoot{\thepage}
+\renewcommand{\headrulewidth}{1pt}
+\renewcommand{\footrulewidth}{1pt}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\title{The {\tt file.frame} Package}
+\author{Bryan W. Lewis \\ 
+blewis@illposed.net}
+
+\begin{document}
+
+\maketitle
+
+\thispagestyle{empty}
+
+\section{Preface}
+
+I've been working with some data from large text files of values in columns
+separated by columns (CSV) format. The files are gigabytes in size and have
+about 20 million rows each. My computer has enough memory for R to load the
+data. But it takes a while and I can be pretty impatient.
+
+Now, I don't really need the entire data set in memory. I really just need to
+filter the data a bit and then sample from the rows. Is there a faster way
+to get to the data I need?
+
+The {\tt file.frame} package lets me quickly and efficiently work with subsets
+from a text file without loading the entire file into memory. A ``file frame''
+presents a text file as a kind of simple data frame, but directly without first
+loading the text file into memory. File frames lazily load data from their
+backing files only when required, for example by an indexing operation. They
+are essentially a lazy wrapper for the {\tt read.table} function with a few
+extra convenience features.
+
+There are several compelling R packages for working directly with file-backed
+data (sometimes called ``out of core'' data): The
+\href{http://cran.r-project.org/web/packages/bigmemory/index.html}{bigmemory}
+package by Emmerson and Kane provides a memory mapped matrix object free of R
+indexing constraints along with a comprehensive suite of fast analysis
+functions.  The very straightforward to use
+\href{http://cran.r-project.org/web/packages/mmap/index.html}{mmap} package by
+Jeff Ryan defines a data frame-like memory mapped object. And the
+\href{http://cran.r-project.org/web/packages/ff/index.html}{ff} package by
+Adler, Oehlschle\"gel, et. al. defines a variety of memory mapped data
+frame-like objects and functions. All of these packages have really interesting
+features. Most of them are designed to facilitate working with objects larger
+than the physical RAM available on a computer.
+
+But, my data sets fit into the RAM on my computer (RAM is really cheap)! My
+main problem is the bottleneck of reading the entire data set in at once. And
+to my knowledge, none of the available packages for R address that problem
+directly.
+
+Note: don't use file frames for small data files--just read the whole data file
+into memory in that case. File frames seem  useful for data files with millions
+or tens of millions of rows. For {\emph really} large data sets,
+{\tt bigmemory} is a good option.
+
+\section{Using {\tt file.frame} package}
+
+
+
+\end{document}

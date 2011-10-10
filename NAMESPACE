@@ -1,5 +1,6 @@
 useDynLib(file.frame)
 export('file.frame')
+import('utils')
 
 # S3 methods
 S3method('Ops',file.frame)
