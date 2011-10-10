@@ -4,7 +4,7 @@
 }
 
 `file.frame` = function(file, sep=",", gz=regexpr(".gz$",file)>0,
-                        skip=0L, header=FALSE, ...)
+                        skip=0L, stringsAsFactors=FALSE, header=FALSE, ...)
 {
    if(missing(file)) stop("'file' must be specified")
    obj = new.env()
@@ -14,12 +14,12 @@
                   PKG="file.frame")
    reg.finalizer(obj$data, .file.frame_finalizer, TRUE)
    obj$call = match.call()
-   obj$file = file
    obj$sep = sep
    obj$args = list(...)
    obj$which = NULL
    obj$header = header
    obj$skip = skip
+   obj$stringsAsFactors = stringsAsFactors
    obj$internalskip = as.integer(skip + header)
    nl = .Call("NUMLINES",obj$data)
    n = min(nl,5)
@@ -44,7 +44,13 @@
 {
   tmp = tryCatch(
     do.call("read.table",
-      args=c(list(file=f,sep=x$sep,skip=skip,header=header),x$args)),
+      args=c(
+        list(file=f,
+             sep=x$sep,
+             skip=skip,
+             header=header,
+             stringsAsFactors=x$stringsAsFactors),
+        x$args)),
       error=function(e) e)
 # DEBUG # system2("cat",args=f)
   unlink(f)
@@ -180,7 +186,7 @@ Ops.file.frame = function(e1,e2) {
 
 `print.file.frame` = function(x, ...)
 {
-  cat("\nLazy person's file-backed data frame for",x$file,"\n\n")
+  cat("\nLazy person's file-backed data frame for",x$call$file,"\n\n")
   print(head(x))
   j = x$dim[1]-6
   if(j>2) cat("and (",j,"more rows not displayed...)\n")

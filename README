@@ -3,3 +3,7 @@ Text is lazily parsed and converted to data frame by read.table only when
 required. File frames are useful for quickly subsetting large csv and other
 text files without loading the entire file. They support normal and
 gzip-compressed files.
+
+
+XXX set default stringsAsFactors and warn about this
+(can't figure out levels easily)

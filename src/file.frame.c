@@ -9,7 +9,7 @@
 #define USE_RINTERNALS
 #include <Rinternals.h>
 
-#define BUFSZ 16384             /* file buffer (allocated in stack) */
+#define BUFSZ 16384             /* stack-allocated buffers */
 #define IDXSZ 1024              /* newline index buffer base size */
 
 typedef struct
@@ -112,9 +112,9 @@ FOO (SEXP F)
 {
   size_t j;
   fmeta *addr = (fmeta *) R_ExternalPtrAddr (F);
-  SEXP ans = allocVector(REALSXP,addr->n);
-  for(j=0;j<addr->n;++j)
-    REAL(ans)[j] = (double)addr->nl[j];
+  SEXP ans = allocVector (REALSXP, addr->n);
+  for (j = 0; j < addr->n; ++j)
+    REAL (ans)[j] = (double) addr->nl[j];
   return ans;
 }
 
@@ -150,7 +150,7 @@ RANGE (SEXP F, SEXP START, SEXP N, SEXP OUT)
   m = fm->read (buf, 1, end - pos, fm->f);
   fprintf (out, "%s", buf);
   free (buf);
-  fprintf(out,"\n");
+  fprintf (out, "\n");
   fclose (out);
   return ScalarReal ((double) m);
 }
@@ -162,7 +162,7 @@ LINES (SEXP F, SEXP IDX, SEXP OUT)
   char buf[BUFSZ];
   char *c;
   size_t m, p, q;
-  int j,k;
+  int j, k;
   const char *fname = CHAR (STRING_ELT (OUT, 0));
   FILE *out = fopen (fname, "w+");
   fmeta *fm = (fmeta *) R_ExternalPtrAddr (F);
@@ -176,7 +176,7 @@ LINES (SEXP F, SEXP IDX, SEXP OUT)
       m = (size_t) (REAL (IDX)[j]) - 1;
       p = fm->nl[m];
       q = fm->nl[m + 1];
-      k = (int)(q-p);
+      k = (int) (q - p);
       fm->seek (fm->f, p, SEEK_SET);
       m = fm->read (buf, 1, k, fm->f);
       fprintf (out, "%s\n", buf);
@@ -240,7 +240,7 @@ numlines (fmeta * fm)
 }
 
 inline char *
-extract (char *buf, const char *delim, int col)
+oldextract (char *buf, const char *delim, int col)
 {
   int j = 0;
   char *s = strtok (buf, delim);
@@ -252,6 +252,37 @@ extract (char *buf, const char *delim, int col)
       s = strtok (NULL, delim);
     }
   return s;
+}
+
+int
+extract (char *buf, const char *delim, int col, int chunk, double *d)
+{
+  char *nl = "\n";
+  char *saveptr1, *saveptr2, *str2, *token, *subtoken, *check;
+  int j, k;
+
+  for (j = 0;; j++, buf = NULL)
+    {
+      token = strtok_r (buf, nl, &saveptr1);
+      if (token == NULL)
+        break;
+      k = 0;
+      for (str2 = token;; str2 = NULL)
+        {
+          subtoken = strtok_r (str2, delim, &saveptr2);
+          if (subtoken == NULL)
+            break;
+          if (k == col && j < chunk)
+            {
+              d[j] = strtod (subtoken, &check);
+              if ((*check != 0) && (!isspace ((unsigned char) *check)))
+                d[j] = NAN;
+              break;
+            }
+          k++;
+        }
+    }
+  return j;
 }
 
 int
@@ -286,64 +317,70 @@ compare (double x, double y, int op)
 }
 
 /* A very limited 'which'-like numeric-only single column filter */
-// Performance? This goes one-line at a time through the file :(.
-// XXX chunk this to improve performance...
 SEXP
 WHICH (SEXP F, SEXP COL, SEXP SKIP, SEXP SEP, SEXP OP, SEXP VAL)
 {
-  char buf[BUFSZ];
-  char *s;
-  char *check;
+  char *s, *check, *buf;
   size_t h, j, p, q;
+  double *d;
   double x;
-  int k;
+  int k, l;
   SEXP ans = R_NilValue;
   fmeta *fm = (fmeta *) R_ExternalPtrAddr (F);
   const char *delim = CHAR (STRING_ELT (SEP, 0));
-  int col = INTEGER (COL)[0];
+  int col = INTEGER (COL)[0] - 1;
   int skip = INTEGER (SKIP)[0];
   int op = INTEGER (OP)[0];
   double val = REAL (VAL)[0];
   int setsz = IDXSZ;
   size_t *set = (size_t *) malloc (setsz * sizeof (size_t));
-  int n = 0;
-  for (j = skip; j < fm->n - 1; ++j)
+  int n = 0, chunk = IDXSZ;
+  /* Traverse the file at most chunk lines at a time */
+  j = skip;
+  /* XXX We use a fixed buffer below. This needs to be checked
+   * and realloc'd if too small. XXX
+   */
+  buf = (char *) malloc (BUFSZ * chunk);
+  d = (double *) malloc (chunk * sizeof (double));
+  while (j < fm->n)
     {
-      memset (buf, 0, BUFSZ);
+      memset (buf, 0, BUFSZ * chunk);
+      if ((j + chunk) > fm->n)
+        {
+          q = fm->n;
+          chunk = fm->n - j;
+          free (d);
+          d = (double *) malloc (chunk * sizeof (double));
+        }
       p = fm->nl[j];
-      q = fm->nl[j + 1];
+      q = fm->nl[j + chunk];
 //XXX should be p + length(newline delimiter)
       fm->seek (fm->f, p + (j > 0), SEEK_SET);
       p = fm->read (buf, 1, q - p, fm->f);
-      s = extract (buf, delim, col);
-      if (s != 0)
+      l = extract (buf, delim, col, chunk, d);
+      for (k = 0; k < l; ++k)
         {
-          x = strtod (s, &check);
-          if ((*check != 0) && (!isspace ((unsigned char) *check)))
-            x = NAN;
-          else
+          if (compare (d[k], val, op))
             {
-              k = compare (x, val, op);
-              if (k)
+              set[n] = j + k - skip;
+              n++;
+              if (n < 0)
                 {
-                  set[n] = j-skip;
-                  n++;
-                  if (n < 0)
-                    {
-                      warning
-                        ("Too many matching elements--only first 2147483647 returned.");
-                      n = 2147483647;
-                      break;
-                    }
-                  if (n > IDXSZ)
-                    {
-                      setsz = setsz + IDXSZ;
-                      set = (size_t *) realloc (set, setsz * sizeof (size_t));
-                    }
+                  warning
+                    ("Too many matching elements--only first 2147483647 returned.");
+                  n = 2147483647;
+                  break;
+                }
+              if (n > IDXSZ)
+                {
+                  setsz = setsz + IDXSZ;
+                  set = (size_t *) realloc (set, setsz * sizeof (size_t));
                 }
             }
         }
+      j = j + chunk;
     }
+  free (d);
   if (n < 1)
     {
       free (set);
