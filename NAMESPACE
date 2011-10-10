@@ -1,0 +1,18 @@
+useDynLib(file.frame)
+export('file.frame')
+
+# S3 methods
+S3method('Ops',file.frame)
+S3method('[',file.frame)
+S3method('[<-',file.frame)
+S3method('names',file.frame)
+S3method('dimnames',file.frame)
+S3method('names<-',file.frame)
+S3method('dimnames<-',file.frame)
+S3method('head',file.frame)
+S3method('tail',file.frame)
+S3method('str',file.frame)
+S3method('print',file.frame)
+S3method('ncol',file.frame)
+S3method('nrow',file.frame)
+S3method('dim',file.frame)
