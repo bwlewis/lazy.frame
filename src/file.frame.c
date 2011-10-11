@@ -5,8 +5,7 @@
 #include <zlib.h>
 #include <math.h>
 #include <ctype.h>
-
-#include <time.h>   // TIME
+#include <locale.h>
 
 #include <R.h>
 #define USE_RINTERNALS
@@ -14,10 +13,6 @@
 
 #define BUFSZ 16384             /* stack-allocated buffers */
 #define IDXSZ 1024              /* newline index buffer base size */
-
-
-clock_t t1, t2;  // TIME
-float ratio = 1./CLOCKS_PER_SEC; //TIME
 
 typedef struct
 {
@@ -298,7 +293,7 @@ compare (double x, double y, int op)
  * conversions by Tino Didriksen (http://tinodidriksen.com), modified to
  * fall back to strtod fo trickier conversions.
  */
-double
+inline double
 cheap_strtod (char *p, char decimal)
 {
   char *check, *t = p;
@@ -345,18 +340,30 @@ cheap_strtod (char *p, char decimal)
   return x;
 }
 
-
-/* A very limited 'which'-like numeric-only single column filter */
+/* A very limited 'which'-like numeric-only single column filter.
+ * Believe it or not, I started with a version that read the file
+ * in blocks instead of line by line (it's in the project git
+ * history). That version is **slower** than this one that runs
+ * through line by line, at least with gzipped files (often used
+ * for really big files). However, seek is more of a bottleneck
+ * for uncompressed files, and that version may be faster in that
+ * case. Certainly more optimization can be found here...
+ * 
+ * The strtod conversion is a big bottleneck. Our cheaper version
+ * saves a little bit of time. Perhaps more speed could be gained.
+ *
+ */
 // XXX Switch to R memory allocators to allow user interrupt.
 SEXP
 WHICH (SEXP F, SEXP COL, SEXP SKIP, SEXP SEP, SEXP OP, SEXP VAL)
 {
   char buf[BUFSZ];
   char *s;
-float t_seek, t_read, t_strtod, t_compare, t_other; //TIME
   size_t h, j, p, q;
   double x;
   int k, l;
+  struct lconv *fmt = localeconv();
+  char decimal = *(fmt->decimal_point);
   SEXP ans = R_NilValue;
   fmeta *fm = (fmeta *) R_ExternalPtrAddr (F);
   const char *delim = CHAR (STRING_ELT (SEP, 0));
@@ -368,27 +375,17 @@ float t_seek, t_read, t_strtod, t_compare, t_other; //TIME
   size_t *set = (size_t *) malloc (setsz * sizeof (size_t));
   int n = 0;
   j = skip;
-t_other=0;t_seek = 0; t_read=0;t_strtod=0;t_compare=0; //TIME
   while (j < fm->n - 1)
     {
       memset (buf, 0, BUFSZ);
       p = fm->nl[j];
       q = fm->nl[j + 1];
 //XXX should be p + length(newline delimiter)
-t1=clock(); //TIME
       fm->seek (fm->f, p + (j > 0), SEEK_SET);
-t_seek = t_seek + ratio*(long)(clock()-t1); //TIME
-t1=clock(); //TIME
       p = fm->read (buf, 1, q - p, fm->f);
-t_read = t_read + ratio*(long)(clock()-t1); //TIME
-t1=clock(); //TIME
       s = get_col_val (buf, delim, col);
-      x = cheap_strtod (s, '.');
-t_strtod = t_strtod + ratio*(long)(clock()-t1); //TIME
-t1=clock(); //TIME
+      x = cheap_strtod (s, decimal);
       k = compare(x,val,op);
-t_compare = t_compare + ratio*(long)(clock()-t1); //TIME
-t1=clock(); //TIME
       if (k)
         {
           set[n] = j - skip;
@@ -406,7 +403,6 @@ t1=clock(); //TIME
               set = (size_t *) realloc (set, setsz * sizeof (size_t));
             }
         }
-t_other = t_other + ratio*(long)(clock()-t1); //TIME
       j++;
     }
   if (n < 1)
@@ -414,11 +410,6 @@ t_other = t_other + ratio*(long)(clock()-t1); //TIME
       free (set);
       return ans;
     }
-printf("t_seek = %f\n",t_seek); //TIME
-printf("t_read = %f\n",t_read); //TIME
-printf("t_strtod = %f\n",t_strtod); //TIME
-printf("t_compare = %f\n",t_compare); //TIME
-printf("t_other = %f\n",t_other); //TIME
   PROTECT (ans = allocVector (REALSXP, n));
   for (j = 0; j < n; ++j)
     REAL (ans)[j] = (double) set[j] + 1;

@@ -1,7 +1,7 @@
 Package: file.frame 
 Type: Package
 Title: fileframe: data.frame-like manipulation of text files.
-Version: 0.0.1
+Version: 0.0.2
 Date: 2011-10-01
 Author: B. W. Lewis <blewis@illposed.net>
 Maintainer: B. W. Lewis <blewis@illposed.net>
