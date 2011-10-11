@@ -1,6 +1,6 @@
-% \VignetteIndexEntry{file.frame Manual}
-% \VignetteDepends{file.frame}
-% \VignettePackage{file.frame}
+% \VignetteIndexEntry{lazy.frame Manual}
+% \VignetteDepends{lazy.frame}
+% \VignettePackage{lazy.frame}
 \documentclass[12pt]{article}
 \usepackage{amsmath}
 \usepackage[pdftex]{graphicx}
@@ -51,7 +51,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \pagestyle{fancy}
 \lhead{}
-\chead{The {\tt file.frame} Package}
+\chead{The {\tt lazy.frame} Package}
 \rhead{}
 \lfoot{}
 \cfoot{}
@@ -59,7 +59,7 @@
 \renewcommand{\headrulewidth}{1pt}
 \renewcommand{\footrulewidth}{1pt}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\title{The {\tt file.frame} Package}
+\title{The {\tt lazy.frame} Package}
 \author{Bryan W. Lewis \\ 
 blewis@illposed.net}
 
@@ -84,8 +84,8 @@ need to filter the data a bit and then sample from the rows. I think this
 situation is typical enough--wanting fast access to subsets of large text
 files--that I wrote this package for it.
 
-The {\tt file.frame} package lets me quickly and efficiently work with subsets
-from a text file without loading the entire file into memory. A ``file frame''
+The {\tt lazy.frame} package lets me quickly and efficiently work with subsets
+from a text file without loading the entire file into memory. A ``lazy.frame''
 presents a text file as a kind of simple data frame, but without first loading
 the file into memory. File frames lazily load data from their backing files
 only when required, for example by an indexing operation. They are essentially
@@ -116,7 +116,7 @@ good for quickly extracting subsets  from raw text files. They are well-suited
 to medium-sized data files with millions or tens of millions of rows. For
 \emph{really} large data sets, {\tt bigmemory} is a good option.
 
-\section{Using {\tt file.frame} package}
+\section{Using {\tt lazy.frame} package}
 \section{Limitations}
 \section{Examples}
 

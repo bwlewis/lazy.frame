@@ -3,6 +3,7 @@
   invisible(.Call("FREE",x))
 }
 
+
 `lazy.frame` = function(file, sep=",", gz=regexpr(".gz$",file)>0,
                         skip=0L, stringsAsFactors=FALSE, header=FALSE, ...)
 {
@@ -21,6 +22,7 @@
    obj$skip = skip
    obj$stringsAsFactors = stringsAsFactors
    obj$internalskip = as.integer(skip + header)
+   obj$colattr = list()
    nl = .Call("NUMLINES",obj$data)
    n = min(nl,5)
    f = tempfile()
@@ -184,7 +186,7 @@ Ops.lazy.frame = function(e1,e2) {
   cat("Str summary of the file.object internals:\n")
   print(ls.str(object))
   cat("\nStr summary of the data head:\n")
-  str(x[1:min(nrow(x),6),,drop=FALSE])
+  str(object[1:min(nrow(object),6),,drop=FALSE])
   cat("The complete data set consists of",x$dim[[1]],"rows.\n")
 }
 
