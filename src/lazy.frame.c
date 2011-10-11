@@ -355,7 +355,7 @@ cheap_strtod (char *p, char decimal)
  */
 // XXX Switch to R memory allocators to allow user interrupt.
 SEXP
-WHICH (SEXP F, SEXP COL, SEXP SKIP, SEXP SEP, SEXP OP, SEXP VAL)
+WHICH (SEXP F, SEXP COL, SEXP ROWNAMES, SEXP SKIP, SEXP SEP, SEXP OP, SEXP VAL)
 {
   char buf[BUFSZ];
   char *s;
@@ -368,12 +368,15 @@ WHICH (SEXP F, SEXP COL, SEXP SKIP, SEXP SEP, SEXP OP, SEXP VAL)
   fmeta *fm = (fmeta *) R_ExternalPtrAddr (F);
   const char *delim = CHAR (STRING_ELT (SEP, 0));
   int col = INTEGER (COL)[0];
+  int rownames = INTEGER(ROWNAMES)[0];
   int skip = INTEGER (SKIP)[0];
   int op = INTEGER (OP)[0];
   double val = REAL (VAL)[0];
   int setsz = IDXSZ;
   size_t *set = (size_t *) malloc (setsz * sizeof (size_t));
   int n = 0;
+  if(rownames>0)
+    if(col>=rownames) col++;
   j = skip;
   while (j < fm->n - 1)
     {

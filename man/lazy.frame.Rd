@@ -49,13 +49,14 @@ Otherwise, specify row and column indices like those for normal data.frames.
 
 Because lazy.frames load data on demand, the default setting of
 \code{stringsAsFactors} is \code{FALSE} (see help for \code{data.frame} for
-more information). See the \code{set_colum_attr} function for an example
+more information). See the \code{\link{column_attr}} function for an example
 of working with factors.
 
 Lazy frames provide a few very basic numeric comparison operations that
 work on single columns and act like the \code{which} function. Presently
 supported operations are ==, !=, <=, >=, <, and >, and may only compare
 a single column with a scalar numeric value. See below for an example.
+The comparison operators do not presently support strings or factors.
 
 }
 \value{
@@ -90,5 +91,5 @@ print(x[c(5,15,25),])
 # Quickly apply basic numeric comparisons to a column
 print(x[x[,1]<4.5,])
 
-rm(f)
+unlink(f)
 }

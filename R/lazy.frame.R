@@ -3,6 +3,25 @@
   invisible(.Call("FREE",x))
 }
 
+`column_attr` = function(x, col, which)
+{
+  if(!is.numeric(col)) stop("col must be numeric")
+  if(!is.character(which)) stop("which must be characer")
+  id = as.character(col)
+  if(!exists(id,envir=x)) stop("invalid column index")
+  x[[id]][[which]]
+}
+
+`column_attr<-` = function(x,col,which,value)
+{
+  if(!is.numeric(col)) stop("col must be numeric")
+  if(!is.character(which)) stop("which must be characer")
+  id = as.character(col)
+  if(!exists(id,envir=x)) stop("invalid column index")
+  assign(which, value, envir=x[[id]])
+  x$attrs = TRUE
+  x
+}
 
 `lazy.frame` = function(file, sep=",", gz=regexpr(".gz$",file)>0,
                         skip=0L, stringsAsFactors=FALSE, header=FALSE, ...)
@@ -15,6 +34,12 @@
                   PKG="lazy.frame")
    reg.finalizer(obj$data, .lazy.frame_finalizer, TRUE)
    obj$call = match.call()
+   obj$row.names = 0
+   if(!is.null(obj$call$row.names)){
+     obj$row.names = obj$call$row.names
+     if(!is.numeric(obj$row.names) || length(obj$row.names)>1)
+     stop("lazy frames only support row names from a single column in the file")
+   }
    obj$sep = sep
    obj$args = list(...)
    obj$which = NULL
@@ -22,7 +47,7 @@
    obj$skip = skip
    obj$stringsAsFactors = stringsAsFactors
    obj$internalskip = as.integer(skip + header)
-   obj$colattr = list()
+   obj$attrs = FALSE
    nl = .Call("NUMLINES",obj$data)
    n = min(nl,5)
    f = tempfile()
@@ -36,7 +61,10 @@
      obj$header = TRUE
      obj$internalskip = as.integer(skip + header)
    }
-   obj$dim = c(nl-obj$internalskip,ncol(tmp))
+   nc = ncol(tmp)
+   obj$dim = c(nl-obj$internalskip,nc)
+   for(j in 1:nc )
+     obj[[as.character(j)]] = new.env()
    obj$dimnames = list(NULL, colnames(tmp))
    class(obj) = "lazy.frame"
    obj
@@ -118,6 +146,18 @@
     tmp = .getframe(x,w)
   }
   if(any(class(tmp)=="error")) stop(tmp)
+  if(x$attrs){
+# some column attributes have been set, apply them:
+    for(l in k){
+      id = as.character(l)
+      a = ls(x[[id]])
+      if(length(a)>0) {
+        for(b in a) {
+          attr(tmp[,l],b) <- x[[id]][[b]]
+        }
+      }
+    }
+  }
   tmp[,k,drop=drop]
 }
 
@@ -135,6 +175,7 @@ Ops.lazy.frame = function(e1,e2) {
   if(is.null(col)) stop("Can only compare a single column")
   .Call("WHICH",e1$data,
                 as.integer(col),
+                as.integer(e1$row.names),
                 as.integer(e1$internalskip),
                 as.character(e1$sep),
                 OP,
@@ -187,7 +228,7 @@ Ops.lazy.frame = function(e1,e2) {
   print(ls.str(object))
   cat("\nStr summary of the data head:\n")
   str(object[1:min(nrow(object),6),,drop=FALSE])
-  cat("The complete data set consists of",x$dim[[1]],"rows.\n")
+  cat("The complete data set consists of",object$dim[[1]],"rows.\n")
 }
 
 `print.lazy.frame` = function(x, ...)

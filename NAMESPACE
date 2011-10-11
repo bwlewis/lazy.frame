@@ -1,5 +1,7 @@
 useDynLib(lazy.frame)
 export('lazy.frame')
+export('column_attr')
+export('column_attr<-')
 import('utils')
 
 # S3 methods
