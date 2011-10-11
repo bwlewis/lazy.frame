@@ -71,48 +71,54 @@ blewis@illposed.net}
 
 \section{Preface}
 
-I've been working with some data from large text files of values in columns
-separated by columns (CSV) format. The files are gigabytes in size and have
-about 20 million rows each. My computer has enough memory for R to load the
-data. But it takes a while and I can be pretty impatient.
+I've been working with some large-ish text files of comma separated values
+(CSV).  The files are each about three gigabytes with about 20 million rows. My
+computer has enough memory for R to load the data.
 
-Now, I don't really need the entire data set in memory. I really just need to
-filter the data a bit and then sample from the rows. Is there a faster way
-to get to the data I need?
+\noindent But it takes a while.
+
+\noindent And I'm impatient.
+
+\noindent Now, I don't really need the entire data set in memory. I really just
+need to filter the data a bit and then sample from the rows. I think this
+situation is typical enough--wanting fast access to subsets of large text
+files--that I wrote this package for it.
 
 The {\tt file.frame} package lets me quickly and efficiently work with subsets
 from a text file without loading the entire file into memory. A ``file frame''
-presents a text file as a kind of simple data frame, but directly without first
-loading the text file into memory. File frames lazily load data from their
-backing files only when required, for example by an indexing operation. They
-are essentially a lazy wrapper for the {\tt read.table} function with a few
-extra convenience features.
+presents a text file as a kind of simple data frame, but without first loading
+the file into memory. File frames lazily load data from their backing files
+only when required, for example by an indexing operation. They are essentially
+a lazy wrapper for the {\tt read.table} function with a few extra convenience
+features.
 
 There are several compelling R packages for working directly with file-backed
-data (sometimes called ``out of core'' data): The
+data: The
 \href{http://cran.r-project.org/web/packages/bigmemory/index.html}{bigmemory}
 package by Emmerson and Kane provides a memory mapped matrix object free of R
 indexing constraints along with a comprehensive suite of fast analysis
-functions.  The very straightforward to use
+functions.  The straightforward to use and powerful
 \href{http://cran.r-project.org/web/packages/mmap/index.html}{mmap} package by
-Jeff Ryan defines a data frame-like memory mapped object. And the
+Jeff Ryan defines a data frame-like memory mapped object. And the venerable
 \href{http://cran.r-project.org/web/packages/ff/index.html}{ff} package by
-Adler, Oehlschle\"gel, et. al. defines a variety of memory mapped data
+Adler, Oehlschl\"agel, et. al. defines a variety of memory mapped data
 frame-like objects and functions. All of these packages have really interesting
 features. Most of them are designed to facilitate working with objects larger
 than the physical RAM available on a computer.
 
 But, my data sets fit into the RAM on my computer (RAM is really cheap)! My
-main problem is the bottleneck of reading the entire data set in at once. And
-to my knowledge, none of the available packages for R address that problem
-directly.
+main problem is the bottleneck from reading the entire data set, which isn't
+avoided by the above packages (although some of the packages do include
+methods to help expedite loading data from text files).
 
-Note: don't use file frames for small data files--just read the whole data file
-into memory in that case. File frames seem  useful for data files with millions
-or tens of millions of rows. For {\emph really} large data sets,
-{\tt bigmemory} is a good option.
+File frames aren't a panacea and have limitations discussed below. They are
+good for quickly extracting subsets  from raw text files. They are well-suited
+to medium-sized data files with millions or tens of millions of rows. For
+\emph{really} large data sets, {\tt bigmemory} is a good option.
 
 \section{Using {\tt file.frame} package}
+\section{Limitations}
+\section{Examples}
 
 
 

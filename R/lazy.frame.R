@@ -1,9 +1,9 @@
-`.file.frame_finalizer` = function(x)
+`.lazy.frame_finalizer` = function(x)
 {
   invisible(.Call("FREE",x))
 }
 
-`file.frame` = function(file, sep=",", gz=regexpr(".gz$",file)>0,
+`lazy.frame` = function(file, sep=",", gz=regexpr(".gz$",file)>0,
                         skip=0L, stringsAsFactors=FALSE, header=FALSE, ...)
 {
    if(missing(file)) stop("'file' must be specified")
@@ -11,8 +11,8 @@
    obj$data=.Call("OPEN",
                   as.character(file),
                   as.integer(gz),
-                  PKG="file.frame")
-   reg.finalizer(obj$data, .file.frame_finalizer, TRUE)
+                  PKG="lazy.frame")
+   reg.finalizer(obj$data, .lazy.frame_finalizer, TRUE)
    obj$call = match.call()
    obj$sep = sep
    obj$args = list(...)
@@ -36,7 +36,7 @@
    }
    obj$dim = c(nl-obj$internalskip,ncol(tmp))
    obj$dimnames = list(NULL, colnames(tmp))
-   class(obj) = "file.frame"
+   class(obj) = "lazy.frame"
    obj
 }
 
@@ -61,23 +61,23 @@
   tmp
 }
 
-`names.file.frame` = function(x)
+`names.lazy.frame` = function(x)
 {
   dimnames(x)[[2]]
 }
 
-`summary.file.frame` = function(x)
+`summary.lazy.frame` = function(x)
 {
   warning("Not yet supported")
   invisible()
 }
 
-`[<-.file.frame` = function(x, j, k, ..., value)
+`[<-.lazy.frame` = function(x, j, k, ..., value)
 {
   stop("File frames are read-only.")
 }
 
-`[.file.frame` = function(x, j, k, ...)
+`[.lazy.frame` = function(x, j, k, ...)
 {
   f = match.call()
   drop=ifelse(is.null(f$drop),TRUE,f$drop)
@@ -119,7 +119,7 @@
   tmp[,k,drop=drop]
 }
 
-Ops.file.frame = function(e1,e2) {
+Ops.lazy.frame = function(e1,e2) {
   col = e1$which
   e1$which = NULL
   OP <- switch(.Generic,"=="=1L,
@@ -128,7 +128,7 @@ Ops.file.frame = function(e1,e2) {
                          "<="=4L,
                          ">"= 5L,
                          "<"= 6L)
-  if(!inherits(e1,"file.frame")) stop("Left-hand side must be file.frame object")
+  if(!inherits(e1,"lazy.frame")) stop("Left-hand side must be lazy.frame object")
   if(!is.numeric(e2)) stop("Sorry, right-hand side must be numeric only")
   if(is.null(col)) stop("Can only compare a single column")
   .Call("WHICH",e1$data,
@@ -139,47 +139,47 @@ Ops.file.frame = function(e1,e2) {
                 as.numeric(e2))
 }
 
-`dim.file.frame` = function(x)
+`dim.lazy.frame` = function(x)
 {
   x$dim
 }
 
-`dim<-.file.frame` = function(x, value)
+`dim<-.lazy.frame` = function(x, value)
 {
   x$dim <- value
   x
 }
 
-`dimnames.file.frame` = function(x)
+`dimnames.lazy.frame` = function(x)
 {
   x$dimnames
 }
 
-`dimnames<-.file.frame` = function(x, value)
+`dimnames<-.lazy.frame` = function(x, value)
 {
   x$dimnames = value
   x
 }
 
-`names<-.file.frame` = function(x,value)
+`names<-.lazy.frame` = function(x,value)
 {
   x$dimnames[[2]] = make.names(value[1:(x$dim[2])])
   x
 }
 
-`head.file.frame` = function(x, n=6L, ...)
+`head.lazy.frame` = function(x, n=6L, ...)
 {
   if(is.null(x$which)) return(x[1:min(nrow(x),n),])
   cat("Note: If you really want this whole column as a vector, supply the row indices too.\n")
   x[1:min(nrow(x),n),x$which,drop=FALSE]
 }
 
-`tail.file.frame` = function(x, n=6L, ...)
+`tail.lazy.frame` = function(x, n=6L, ...)
 {
   x[max((nrow(x)-n),1):nrow(x),]
 }
 
-`str.file.frame` = function(object, ...)
+`str.lazy.frame` = function(object, ...)
 {
   cat("Str summary of the file.object internals:\n")
   print(ls.str(object))
@@ -188,7 +188,7 @@ Ops.file.frame = function(e1,e2) {
   cat("The complete data set consists of",x$dim[[1]],"rows.\n")
 }
 
-`print.file.frame` = function(x, ...)
+`print.lazy.frame` = function(x, ...)
 {
   cat("\nLazy person's file-backed data frame for",x$call$file,"\n\n")
   print(head(x))
@@ -196,6 +196,6 @@ Ops.file.frame = function(e1,e2) {
   if(j>2) cat("and (",j,"more rows not displayed...)\n")
 }
 
-`ncol.file.frame` = function(x) x$dim[2]
-`nrow.file.frame` = function(x) x$dim[1]
-`dim.file.frame` = function(x) x$dim
+`ncol.lazy.frame` = function(x) x$dim[2]
+`nrow.lazy.frame` = function(x) x$dim[1]
+`dim.lazy.frame` = function(x) x$dim
