@@ -7,3 +7,6 @@ gzip-compressed files.
 
 XXX set default stringsAsFactors and warn about this
 (can't figure out levels easily)
+
+XXX damn, my which 'speed improvement' slowed it down by more than 2x.
+Funk.

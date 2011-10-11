@@ -181,7 +181,11 @@ Ops.file.frame = function(e1,e2) {
 
 `str.file.frame` = function(object, ...)
 {
-  ls.str(object)
+  cat("Str summary of the file.object internals:\n")
+  print(ls.str(object))
+  cat("\nStr summary of the data head:\n")
+  str(x[1:min(nrow(x),6),,drop=FALSE])
+  cat("The complete data set consists of",x$dim[[1]],"rows.\n")
 }
 
 `print.file.frame` = function(x, ...)

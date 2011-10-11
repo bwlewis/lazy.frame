@@ -29,10 +29,9 @@ until accessed, file frames are a fast and memory-efficient way to
 extract subsets from medium to large text files (for example with
 tens of millions of rows).
 
-File frames are read only. They support gzip-compressed and uncompressed
-text files, but only with Unix-like (newline only)
-line termination right now. A future
-version may support newline + carriage return termination. Maybe.
+File frames are read only. They support gzip-compressed and uncompressed text
+files, but presently only with Unix-like (newline only) line termination. A
+future version may support newline + carriage return termination. Maybe.
 
 Indexing operations generally follow standard array indexing with a few
 exceptions:
@@ -43,6 +42,10 @@ exceptions:
   \item File frames don't yet support the dollar sign column selector.
 }
 Otherwise, specify row and column indices like those for normal data.frames.
+
+Because file frames lazily load data, the default setting of
+\code{stringsAsFactors} is \code{FALSE} (see help for \code{data.frame} for
+more information).
 
 File frames provide a few very basic numeric comparison operations that
 work on single columns and act like the \code{which} function. Presently

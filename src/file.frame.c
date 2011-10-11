@@ -1,3 +1,4 @@
+#define _GNU_SOURCE
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
@@ -5,12 +6,18 @@
 #include <math.h>
 #include <ctype.h>
 
+#include <time.h>   // TIME
+
 #include <R.h>
 #define USE_RINTERNALS
 #include <Rinternals.h>
 
 #define BUFSZ 16384             /* stack-allocated buffers */
 #define IDXSZ 1024              /* newline index buffer base size */
+
+
+clock_t t1, t2;  // TIME
+float ratio = 1./CLOCKS_PER_SEC; //TIME
 
 typedef struct
 {
@@ -125,6 +132,8 @@ NUMLINES (SEXP F)
   return ScalarReal ((double) addr->n);
 }
 
+// XXX Here and below switch to R memory allocators to
+// allow user interrupt.
 /* Assumes start base row index 1 */
 SEXP
 RANGE (SEXP F, SEXP START, SEXP N, SEXP OUT)
@@ -240,7 +249,7 @@ numlines (fmeta * fm)
 }
 
 inline char *
-oldextract (char *buf, const char *delim, int col)
+get_col_val (char *buf, const char *delim, int col)
 {
   int j = 0;
   char *s = strtok (buf, delim);
@@ -252,37 +261,6 @@ oldextract (char *buf, const char *delim, int col)
       s = strtok (NULL, delim);
     }
   return s;
-}
-
-int
-extract (char *buf, const char *delim, int col, int chunk, double *d)
-{
-  char *nl = "\n";
-  char *saveptr1, *saveptr2, *str2, *token, *subtoken, *check;
-  int j, k;
-
-  for (j = 0;; j++, buf = NULL)
-    {
-      token = strtok_r (buf, nl, &saveptr1);
-      if (token == NULL)
-        break;
-      k = 0;
-      for (str2 = token;; str2 = NULL)
-        {
-          subtoken = strtok_r (str2, delim, &saveptr2);
-          if (subtoken == NULL)
-            break;
-          if (k == col && j < chunk)
-            {
-              d[j] = strtod (subtoken, &check);
-              if ((*check != 0) && (!isspace ((unsigned char) *check)))
-                d[j] = NAN;
-              break;
-            }
-          k++;
-        }
-    }
-  return j;
 }
 
 int
@@ -316,76 +294,131 @@ compare (double x, double y, int op)
   return k;
 }
 
+/* Cheaper strtod:  It's based on a nice comparison of string to numeric
+ * conversions by Tino Didriksen (http://tinodidriksen.com), modified to
+ * fall back to strtod fo trickier conversions.
+ */
+double
+cheap_strtod (char *p, char decimal)
+{
+  char *check, *t = p;
+  double x = 0.0;
+  int neg = 0;
+  while(*p == ' ') ++p;
+  if(*p != '-' && *p < '0' && *p > '9') return NAN;
+  if (*p == '-')
+    {
+      neg = 1;
+      ++p;
+    }
+  while (*p >= '0' && *p <= '9')
+    {
+      x = (x * 10.0) + (*p - '0');
+      ++p;
+    }
+  if(*p == 'e' || *p == 'E') {
+    x = strtod(t, &check);
+              if ((*check != 0) && (!isspace ((unsigned char) *check)))
+                x = NAN;
+    return x;
+  }
+  if (*p == decimal)
+    {
+      double f = 0.0;
+      int n = 0;
+      ++p;
+      while (*p >= '0' && *p <= '9')
+        {
+          f = (f * 10.0) + (*p - '0');
+          ++p;
+          ++n;
+        }
+      x += f / exp10 (n);
+    }
+  if(*p == 'e' || *p == 'E') {
+    x = strtod(t, &check);
+              if ((*check != 0) && (!isspace ((unsigned char) *check)))
+                x = NAN;
+    return x;
+  }
+  if (neg) return (-x);
+  return x;
+}
+
+
 /* A very limited 'which'-like numeric-only single column filter */
+// XXX Switch to R memory allocators to allow user interrupt.
 SEXP
 WHICH (SEXP F, SEXP COL, SEXP SKIP, SEXP SEP, SEXP OP, SEXP VAL)
 {
-  char *s, *check, *buf;
+  char buf[BUFSZ];
+  char *s;
+float t_seek, t_read, t_strtod, t_compare, t_other; //TIME
   size_t h, j, p, q;
-  double *d;
   double x;
   int k, l;
   SEXP ans = R_NilValue;
   fmeta *fm = (fmeta *) R_ExternalPtrAddr (F);
   const char *delim = CHAR (STRING_ELT (SEP, 0));
-  int col = INTEGER (COL)[0] - 1;
+  int col = INTEGER (COL)[0];
   int skip = INTEGER (SKIP)[0];
   int op = INTEGER (OP)[0];
   double val = REAL (VAL)[0];
   int setsz = IDXSZ;
   size_t *set = (size_t *) malloc (setsz * sizeof (size_t));
-  int n = 0, chunk = IDXSZ;
-  /* Traverse the file at most chunk lines at a time */
+  int n = 0;
   j = skip;
-  /* XXX We use a fixed buffer below. This needs to be checked
-   * and realloc'd if too small. XXX
-   */
-  buf = (char *) malloc (BUFSZ * chunk);
-  d = (double *) malloc (chunk * sizeof (double));
-  while (j < fm->n)
+t_other=0;t_seek = 0; t_read=0;t_strtod=0;t_compare=0; //TIME
+  while (j < fm->n - 1)
     {
-      memset (buf, 0, BUFSZ * chunk);
-      if ((j + chunk) > fm->n)
-        {
-          q = fm->n;
-          chunk = fm->n - j;
-          free (d);
-          d = (double *) malloc (chunk * sizeof (double));
-        }
+      memset (buf, 0, BUFSZ);
       p = fm->nl[j];
-      q = fm->nl[j + chunk];
+      q = fm->nl[j + 1];
 //XXX should be p + length(newline delimiter)
+t1=clock(); //TIME
       fm->seek (fm->f, p + (j > 0), SEEK_SET);
+t_seek = t_seek + ratio*(long)(clock()-t1); //TIME
+t1=clock(); //TIME
       p = fm->read (buf, 1, q - p, fm->f);
-      l = extract (buf, delim, col, chunk, d);
-      for (k = 0; k < l; ++k)
+t_read = t_read + ratio*(long)(clock()-t1); //TIME
+t1=clock(); //TIME
+      s = get_col_val (buf, delim, col);
+      x = cheap_strtod (s, '.');
+t_strtod = t_strtod + ratio*(long)(clock()-t1); //TIME
+t1=clock(); //TIME
+      k = compare(x,val,op);
+t_compare = t_compare + ratio*(long)(clock()-t1); //TIME
+t1=clock(); //TIME
+      if (k)
         {
-          if (compare (d[k], val, op))
+          set[n] = j - skip;
+          n++;
+          if (n < 0)
             {
-              set[n] = j + k - skip;
-              n++;
-              if (n < 0)
-                {
-                  warning
-                    ("Too many matching elements--only first 2147483647 returned.");
-                  n = 2147483647;
-                  break;
-                }
-              if (n > IDXSZ)
-                {
-                  setsz = setsz + IDXSZ;
-                  set = (size_t *) realloc (set, setsz * sizeof (size_t));
-                }
+              warning
+                ("Too many matching elements--only first 2147483647 returned.");
+              n = 2147483647;
+              break;
+            }
+          if (n > IDXSZ)
+            {
+              setsz = setsz + IDXSZ;
+              set = (size_t *) realloc (set, setsz * sizeof (size_t));
             }
         }
-      j = j + chunk;
+t_other = t_other + ratio*(long)(clock()-t1); //TIME
+      j++;
     }
-  free (d);
   if (n < 1)
     {
       free (set);
       return ans;
     }
+printf("t_seek = %f\n",t_seek); //TIME
+printf("t_read = %f\n",t_read); //TIME
+printf("t_strtod = %f\n",t_strtod); //TIME
+printf("t_compare = %f\n",t_compare); //TIME
+printf("t_other = %f\n",t_other); //TIME
   PROTECT (ans = allocVector (REALSXP, n));
   for (j = 0; j < n; ++j)
     REAL (ans)[j] = (double) set[j] + 1;
