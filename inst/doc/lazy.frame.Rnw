@@ -20,6 +20,7 @@
 \usepackage{listings}
 \usepackage{mdwlist}
 
+\usepackage{lmodern}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % define new colors for use
@@ -72,7 +73,7 @@ blewis@illposed.net}
 \section{Preface}
 
 I've been working with some large-ish text files of comma separated values
-(CSV) recently. The files are each about three gigabytes with about 20 million
+(CSV) recently. The files are each about two gigabytes with about 20 million
 rows. My computer has plenty of memory for R to load each file.
 
 \noindent But, it takes a while.
@@ -112,10 +113,12 @@ data set, which isn't really avoided by the above packages (although some of
 the packages do include methods to help expedite loading data from text files).
 
 Of course, lazy frames aren't a panacea and have limitations discussed below.
-For \emph{really} large data sets, or for more sophisticated operations
-involving all the data, {\tt bigmemory} is a better option.  Lazy frames are
-really good for quickly extracting subsets from large text files with between
-roughly a million and a hundred million or so rows.
+If you need to compute with all of the data in a file, then bite the bullet and
+load the whole file, or consider using {\tt ff}, {\tt mmap}, or {\tt bigmemory}
+if you're short of RAM.  For \emph{really} large data sets, or for more
+sophisticated operations involving all the data, {\tt bigmemory} is a better
+option.  Lazy frames are really good for quickly extracting subsets from large
+text files with between roughly a million and a hundred million or so rows.
 
 \section{Using {\tt lazy.frame} package} \section{Limitations}
 \section{Examples} I present a few examples that compare indexing operations on
@@ -130,46 +133,129 @@ echo 3 > /proc/sys/vm/drop_caches
 \end{lstlisting}
 was issued (wiping clean the Linux disk memory cache) just before each test.
 
-\subsection{An uncompressed file example}
+\newpage
+\subsection{Uncompressed file examples}
+I used {\tt read.table} with and without defining column classes to read the
+data into a data frame from an uncompressed file. As expected, specifying
+column classes in {\tt read.table}
+reduced the load time by more than 20\% in this example, and greatly
+reduced the maxmimum memory consumption during loading 
+from almost 8\,GB to under 5\,GB. Without column classes, it took
+over 11 minutes to load the data in. Specifying column classes reduced
+that to about 9 minutes.
 
+Once loaded, I extracted a subset of
+about 95 thousand rows in which the 20th column had values greater than
+zero. It took about 27 seconds to extract the subset.
+
+Lazy frame took only about 4 seconds to ``load'' the same file, and about 53
+seconds to extract the same row subset. Thus, we see the penalty of lazily
+loading data from the file--it took about twice as long to extract the subset
+in this example. But, we avoided the substantial initial load time almost
+completely. And, the maximum memory used by the R session was limited to about
+the 18MB memory required to hold the subset.
+
+\lstset{
+  morecomment=[l][\textbf]{  use},
+  morecomment=[l][\textbf]{[1]},
+  morecomment=[l][\textbf]{648},
+  morecomment=[l][\textbf]{443},
+  morecomment=[l][\textbf]{ 2},
+  morecomment=[l][\textbf]{ 40},
+  morecomment=[l][\textbf]{Ncel},
+  morecomment=[l][\textbf]{Vcel},
+  frame=single,
+  basicstyle=\small,
+  breaklines=true,
+}
+
+\lstset{caption=Extract a subset from a lazy frame.}
 \begin{lstlisting}
-read.table results:
-load time:
-   user  system elapsed
-648.380  33.350 682.699
-            used   (Mb) gc trigger   (Mb)   max used   (Mb)
-Ncells    138089    7.4     667722   35.7     380666   20.4
-Vcells 285413776 2177.6  832606162 6352.3 1034548528 7893.0
-[1] 17826159       27
-subset time:
-   user  system elapsed
-  27.87    2.41   30.31
-[1] 95166    27
+library("lazy.frame")
 
-read.table with colClasses results:
-load time:
-   user  system elapsed
-443.290  82.780 526.141
-            used   (Mb) gc trigger   (Mb)  max used   (Mb)
-Ncells    138519    7.4     350000   18.7    350000   18.7
-Vcells 285348278 2177.1  649037152 4951.8 641872298 4897.1
-[1] 17826159       27
-subset time:
-   user  system elapsed
- 28.410   2.180  30.593
-[1] 95166    27
-
-file.frame results:
-load time:
+t1 = proc.time()
+x = file.frame(file="test.csv")
+print(proc.time() - t1)
    user  system elapsed
    2.34    2.05    4.39
+
+print(gc())
          used (Mb) gc trigger (Mb) max used (Mb)
 Ncells 140517  7.6     350000 18.7   350000 18.7
 Vcells 130910  1.0     786432  6.0   531925  4.1
+
+print(dim(x))
 [1] 17826159       27
-subset time:
+
+t1 = proc.time()
+z = x[x[,20]>0,]
+print(proc.time() - t1)
    user  system elapsed
  40.870  11.770  52.709
+
+print(dim(z))
+[1] 95166    27
+\end{lstlisting}
+
+\newpage
+\lstset{caption=Extract a subset from a data frame loaded with {\tt read.table}}
+\begin{lstlisting}
+t1 = proc.time()
+x = read.table(file="test.csv",header=FALSE,sep=",",stringsAsFactors=FALSE)
+print(proc.time() - t1)
+   user  system elapsed
+648.380  33.350 682.699
+
+print(gc())
+            used   (Mb) gc trigger   (Mb)   max used   (Mb)
+Ncells    138089    7.4     667722   35.7     380666   20.4
+Vcells 285413776 2177.6  832606162 6352.3 1034548528 7893.0
+
+print(dim(x))
+[1] 17826159       27
+
+t1 = proc.time()
+y = x[x[,20]>0,]
+print(proc.time() - t1)
+  user  system elapsed
+ 27.87    2.41   30.31
+
+print(dim(y))
+[1] 95166    27
+\end{lstlisting}
+
+
+\newpage
+\lstset{caption=Extract a subset from a data frame loaded with {\tt read.table}
+with defined column classes.}
+\begin{lstlisting}
+cc = c("numeric","integer","integer","integer","integer",
+       "integer","integer","integer","integer","character",
+       "character","integer","integer","integer","integer",
+       "integer","integer","integer","integer","integer",
+       "integer","integer","integer","numeric","integer",
+       "numeric","integer")
+t1 = proc.time()
+x = read.table(file="test.csv",header=FALSE,sep=",",stringsAsFactors=FALSE, colClasses=cc)
+print(proc.time() - t1)
+   user  system elapsed
+443.290  82.780 526.141
+
+print(gc())
+            used   (Mb) gc trigger   (Mb)  max used   (Mb)
+Ncells    138519    7.4     350000   18.7    350000   18.7
+Vcells 285348278 2177.1  649037152 4951.8 641872298 4897.1
+
+print(dim(x))
+[1] 17826159       27
+
+t1 = proc.time()
+y = x[x[,20]>0,]
+print(proc.time() - t1)
+   user  system elapsed
+ 28.410   2.180  30.593
+
+print(dim(y))
 [1] 95166    27
 \end{lstlisting}
 
