@@ -116,7 +116,9 @@
   if(missing(j)) {
     if(missing(k)) stop("Really?")
     if(length(k)>1)
-      stop("Selection of all rows limited to single column")
+      stop("Selection of all rows is limited to single column")
+    if(is.character(k)) k = match(k,names(x))
+    if(!is.numeric(k)) stop("Invalid column index")
     x$which = as.integer(k)
     return(x)
   }

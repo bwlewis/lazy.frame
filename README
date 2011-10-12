@@ -1,5 +1,5 @@
-Lazy frames are simple relatives of data frames, backed by text files. Backing
-files are parsed and converted to data frames on demand.  Lazy frames are
+A lazy.frame is a data frame promise. It presents a delimited text file
+as a kind of simple data frame, but without initially loading the file into memory.
+Lazy frames load data from their backing files on demand, and are
 useful for quickly and efficiently extracting subsets from large csv and other
-text files without loading the entire file. They support normal and
-gzip-compressed files.
+text files.  They support normal and gzip-compressed files.

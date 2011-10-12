@@ -1,12 +1,12 @@
 \name{lazy.frame}
 \alias{lazy.frame}
-\title{A lazy person's file-backed data frame.}
+\title{A file-backed data frame promise.}
 \description{
-Lazy frames are simple relatives of data frames, backed by text files. Backing
-files are parsed and converted to data frames on demand.  Lazy frames are
+A \code{lazy.frame} is a data frame promise. It presents a delimited text file
+as a kind of simple data frame, but without initially loading the file into memory.
+Lazy frames load data from their backing files on demand.  Lazy frames are
 useful for quickly and efficiently extracting subsets from large csv and other
-text files without loading the entire file. They support normal and
-gzip-compressed files.
+text files.  They support normal and gzip-compressed files.
 }
 \usage{
 lazy.frame(file, sep=",", gz=regexpr(".gz$",file)>0, skip=0L, stringsAsFactors=FALSE, header=FALSE, ...)
@@ -28,7 +28,7 @@ lazy.frame(file, sep=",", gz=regexpr(".gz$",file)>0, skip=0L, stringsAsFactors=F
   \item{\dots}{Other arguments are passed directly to \code{read.table}. }
 }
 \details{
-Lazy frames express raw text files as data frames, lazily invoking
+Lazy frames express raw text files as data frames, invoking
 \code{read.table} as required. Because the file contents are not loaded
 until accessed, lazy.frames are a fast and memory efficient way to
 extract subsets from medium to large text files (for example with
