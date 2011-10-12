@@ -79,9 +79,7 @@ FREE (SEXP M)
 SEXP
 OPEN (SEXP F, SEXP GZ)
 {
-  SEXP ans;
   FILE *f;
-  int j;
   int gz = INTEGER (GZ)[0];
   const char *fname = CHAR (STRING_ELT (F, 0));
   fmeta *fm = (fmeta *) malloc (sizeof (fmeta));
@@ -164,9 +162,8 @@ SEXP
 LINES (SEXP F, SEXP IDX, SEXP OUT)
 {
   char buf[BUFSZ];
-  char *c;
   size_t m, p, q;
-  int j, k;
+  int k,j;
   const char *fname = CHAR (STRING_ELT (OUT, 0));
   FILE *out = fopen (fname, "w+");
   fmeta *fm = (fmeta *) R_ExternalPtrAddr (F);
@@ -354,14 +351,15 @@ cheap_strtod (char *p, char decimal)
  *
  */
 // XXX Switch to R memory allocators to allow user interrupt.
+// XXX add checks for memory allocation failures, read failures, etc.
 SEXP
 WHICH (SEXP F, SEXP COL, SEXP ROWNAMES, SEXP SKIP, SEXP SEP, SEXP OP, SEXP VAL)
 {
   char buf[BUFSZ];
   char *s;
-  size_t h, j, p, q;
+  size_t j, p, q;
   double x;
-  int k, l;
+  int k;
   struct lconv *fmt = localeconv();
   char decimal = *(fmt->decimal_point);
   SEXP ans = R_NilValue;
@@ -400,7 +398,7 @@ WHICH (SEXP F, SEXP COL, SEXP ROWNAMES, SEXP SKIP, SEXP SEP, SEXP OP, SEXP VAL)
               n = 2147483647;
               break;
             }
-          if (n > IDXSZ)
+          if (n >= setsz)
             {
               setsz = setsz + IDXSZ;
               set = (size_t *) realloc (set, setsz * sizeof (size_t));
