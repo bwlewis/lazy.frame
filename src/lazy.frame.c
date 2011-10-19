@@ -409,6 +409,7 @@ WHICH (SEXP F, SEXP COL, SEXP ROWNAMES, SEXP SKIP, SEXP SEP, SEXP OP, SEXP VAL)
   if (n < 1)
     {
       free (set);
+      ans = allocVector(REALSXP,0);
       return ans;
     }
   PROTECT (ans = allocVector (REALSXP, n));
