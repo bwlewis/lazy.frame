@@ -9,3 +9,4 @@ Description: A lazy person's data frame-like interface to column-delimited text 
 Depends: R (>= 2.5)
 License: LGPL-3
 LazyLoad: yes
+Packaged: 2011-10-19 21:35:30 UTC; blewis

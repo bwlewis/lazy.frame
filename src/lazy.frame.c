@@ -11,6 +11,11 @@
 #define USE_RINTERNALS
 #include <Rinternals.h>
 
+double port_exp10(double arg) {
+  return exp(2.30258509299404568402 * arg);
+}
+
+
 #define BUFSZ 16384             /* stack-allocated buffers */
 #define IDXSZ 1024              /* newline index buffer base size */
 
@@ -290,7 +295,7 @@ compare (double x, double y, int op)
  * conversions by Tino Didriksen (http://tinodidriksen.com), modified to
  * fall back to strtod fo trickier conversions.
  */
-inline double
+double
 cheap_strtod (char *p, char decimal)
 {
   char *check, *t = p;
@@ -325,7 +330,7 @@ cheap_strtod (char *p, char decimal)
           ++p;
           ++n;
         }
-      x += f / exp10 (n);
+      x += f / port_exp10 (n);
     }
   if(*p == 'e' || *p == 'E') {
     x = strtod(t, &check);
