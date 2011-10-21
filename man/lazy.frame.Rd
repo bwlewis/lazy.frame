@@ -35,8 +35,7 @@ extract subsets from medium to large text files (for example with
 tens of millions of rows).
 
 Lazy frames are read only. They support gzip-compressed and uncompressed text
-files, but presently only with Unix-like (newline only) line termination. A
-future version may support newline + carriage return termination. Maybe.
+files.
 
 Indexing operations generally follow standard array indexing with a few
 exceptions:
@@ -53,11 +52,11 @@ Because lazy.frames load data on demand, the default setting of
 more information). See the \code{\link{column_attr}} function for an example
 of working with factors.
 
-Lazy frames provide a few very basic numeric comparison operations that
-work on single columns and act like the \code{which} function. Presently
-supported operations are ==, !=, <=, >=, <, and >, and may only compare
-a single column with a scalar numeric value. See below for an example.
-The comparison operators do not presently support strings or factors.
+Lazy frames provide a few very basic comparison operations that work quickly on
+single columns and act like the \code{which} function. Presently supported
+operations are ==, !=, <=, >=, <, and >, and may only compare a single column
+with a scalar numeric  or integer value, or with a character string. See below
+for an example.
 
 }
 \value{
@@ -91,6 +90,10 @@ print(x[c(5,15,25),])
 
 # Quickly apply basic numeric comparisons to a column
 print(x[x[,1]<4.5,])
+
+# Basic string and integer comparisons work too.
+v = x[x[,5]=="versicolor"]
+print(dim(v))
 
 unlink(f)
 }

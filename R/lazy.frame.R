@@ -173,7 +173,7 @@ Ops.lazy.frame = function(e1,e2) {
                          ">"= 5L,
                          "<"= 6L)
   if(!inherits(e1,"lazy.frame")) stop("Left-hand side must be lazy.frame object")
-  if(!is.numeric(e2)) stop("Sorry, right-hand side must be numeric only")
+#  if(!is.numeric(e2)) stop("Sorry, right-hand side must be numeric only")
   if(is.null(col)) stop("Can only compare a single column")
   .Call("WHICH",e1$data,
                 as.integer(col),
@@ -181,7 +181,7 @@ Ops.lazy.frame = function(e1,e2) {
                 as.integer(e1$internalskip),
                 as.character(e1$sep),
                 OP,
-                as.numeric(e2))
+                e2)
 }
 
 `dim.lazy.frame` = function(x)
