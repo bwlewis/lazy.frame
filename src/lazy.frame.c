@@ -110,7 +110,7 @@ OPEN (SEXP F, SEXP GZ)
     }
   else
     {
-      f = fopen (fname, "r");
+      f = fopen (fname, "rb");
       fm->f = f;
       fm->close = &fclose;
       fm->seek = &fseek;
@@ -164,7 +164,7 @@ RANGE (SEXP F, SEXP START, SEXP N, SEXP OUT)
   size_t end = fm->nl[start + n];
   fm->seek (fm->f, pos, SEEK_SET);
   buf = (char *) calloc (1, 1 + end - pos);
-  m = fm->read (buf, 1, end - pos, fm->f);
+  m = fm->read (buf, sizeof(char), end - pos, fm->f);
   fprintf (out, "%s", buf);
   free (buf);
   fprintf (out, "\n");
@@ -194,7 +194,7 @@ LINES (SEXP F, SEXP IDX, SEXP OUT)
       q = fm->nl[m + 1];
       k = (int) (q - p);
       fm->seek (fm->f, p, SEEK_SET);
-      m = fm->read (buf, 1, k, fm->f);
+      m = fm->read (buf, sizeof(char), k, fm->f);
       fprintf (out, "%s\n", buf);
     }
   fclose (out);
@@ -215,7 +215,7 @@ numlines (fmeta * fm)
   void *addr;
   size_t *nl;
   FILE *f;
-  int d, j, k;
+  int d, k;
   size_t p, q, l, m, n = 0;
   f = fm->f;
   p = IDXSZ;
@@ -227,7 +227,7 @@ numlines (fmeta * fm)
   nl[0] = 0;
   while (k == 0)
     {
-      m = fm->read (BUF, 1, BUFSZ, f);
+      m = fm->read (BUF, sizeof(char), BUFSZ, f);
       if (m < 1)
 	break;
       s = memchr (BUF, 10, m);	// XXX Add newline character argument
@@ -245,8 +245,7 @@ numlines (fmeta * fm)
 // XXX else error...
 	    }
 	  l = m - d;
-	  s++;
-	  s = memchr (s, 10, l);
+	  s = memchr (++s, 10, l);
 	}
       q++;
       k = (fm->eof (f) != 0);
@@ -459,13 +458,13 @@ WHICH (SEXP F, SEXP COL, SEXP ROWNAMES, SEXP SKIP, SEXP SEP, SEXP OP,
     if (col >= rownames)
       col++;
   j = skip;
-  while (j < fm->n - 1)
+  while (j < fm->n)
     {
       memset (buf, 0, BUFSZ);
       p = fm->nl[j];
       q = fm->nl[j + 1];
       fm->seek (fm->f, p + (j > 0), SEEK_SET);
-      p = fm->read (buf, 1, q - p, fm->f);
+      p = fm->read (buf, sizeof(char), q - p, fm->f);
       s = get_col_val (buf, delim, col);
       if (!s)
 	break;
