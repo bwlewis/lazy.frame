@@ -230,7 +230,7 @@ numlines (fmeta * fm)
       m = fm->read (BUF, sizeof(char), BUFSZ, f);
       if (m < 1)
 	break;
-      s = memchr (BUF, 10, m);	// XXX Add newline character argument
+      s = memchr (BUF, 10, m);
       while (s != 0)
 	{
 	  d = (int) (s - BUF);
@@ -331,7 +331,7 @@ compare_int (int x, int y, int op)
   return k;
 }
 
-int
+inline int
 compare_str (char *s1, const char *s2, int op)
 {
 /* comparisons: * 1 ==;  2 !=; 3 >=; 4 <=;5 >; 6 < */
@@ -418,14 +418,8 @@ cheap_strtod (char *p, char decimal)
   return x;
 }
 
-/* A very limited 'which'-like numeric-only single column filter.
- * Believe it or not, I started with a version that read the file
- * in blocks instead of line by line (it's in the project git
- * history). That version is **slower** than this one that runs
- * through line by line, at least with gzipped files (often used
- * for really big files). However, seek is more of a bottleneck
- * for uncompressed files, and that version may be faster in that
- * case. Certainly more optimization can be found here...
+/* A very limited 'which'-like  single column filter.
+ * Certainly more optimization can be found here...
  * 
  * The strtod conversion is a big bottleneck. Our cheaper version
  * saves a little bit of time. Perhaps more speed could be gained.

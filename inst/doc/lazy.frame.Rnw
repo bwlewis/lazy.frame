@@ -248,7 +248,8 @@ Listing 2 shows some examples of extracting subsets from the variable
 Lazy frames provide a few very basic, but fast, comparison operations that
 apply to single columns. These operations are useful for basic data filtering.
 These operations {\it only} apply to one column at a time and are limited to
-the numeric comparisons: $<\qquad >\qquad \le\qquad \ge\qquad !=\qquad ==$.
+the comparisons: $<\qquad >\qquad \le\qquad \ge\qquad !=\qquad ==$ for
+numeric, integer, and character values only.
 
 Recall that comparisons on data frame columns return a vector of Boolean values
 with the result of the comparison for each row.  Unlike data frames, lazy
@@ -282,7 +283,8 @@ frame behavior summarized here.
 \item They only support Unix line termination text files (for now).
 \item Column name indexing with \$ is not supported.
 \item Comparison operations that involve all rows are limited to
-basic numeric comparisons for a single column only.
+basic comparisons for a single column only, and only for numeric,
+integer, and character values.
 \item Comparison operations return a set of indices like {\tt which}
 instead of a vector of Boolean values.
 \item Row names are supported, but they must be from a column in the data
