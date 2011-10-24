@@ -425,8 +425,6 @@ cheap_strtod (char *p, char decimal)
  * saves a little bit of time. Perhaps more speed could be gained.
  *
  */
-// XXX Switch to R memory allocators to allow user interrupt.
-// XXX add checks for memory allocation failures, read failures, etc.
 SEXP
 WHICH (SEXP F, SEXP COL, SEXP ROWNAMES, SEXP SKIP, SEXP SEP, SEXP OP,
        SEXP VAL)

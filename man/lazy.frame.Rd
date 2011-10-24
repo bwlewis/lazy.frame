@@ -3,10 +3,10 @@
 \title{A file-backed data frame promise.}
 \description{
 A \code{lazy.frame} is a data frame promise. It presents a delimited text file
-as a kind of simple data frame, but without initially loading the file into memory.
-Lazy frames load data from their backing files on demand.  Lazy frames are
-useful for quickly and efficiently extracting subsets from large csv and other
-text files.  They support normal and gzip-compressed files.
+as a kind of simple read-only data frame, without initially loading the file
+into memory.  Lazy frames load data from their backing files on demand.  Lazy
+frames are useful for quickly and efficiently extracting subsets from large csv
+and other text files.  They support normal and gzip-compressed files.
 }
 \usage{
 lazy.frame(file, sep=",", gz=regexpr(".gz$",file)>0, skip=0L, stringsAsFactors=FALSE, header=FALSE, ...)
@@ -41,7 +41,7 @@ Indexing operations generally follow standard array indexing with a few
 exceptions:
 \enumerate{
   \item Only positive indices are allowed.
-  \item A missing row index requires specification of a single column, for
+  \item A missing row index requires specification of a single column for
         use in some basic comparison operations discussed below.
   \item Lazy frames don't yet support the dollar sign column selector.
 }
@@ -91,7 +91,8 @@ print(x[c(5,15,25),])
 # Quickly apply basic numeric comparisons to a column
 print(x[x[,1]<4.5,])
 
-# Basic string and integer comparisons work too.
+# Basic string and integer comparisons work too. Note that they are faster
+# than numeric or integer comparisons.
 v = x[x[,5]=="versicolor"]
 print(dim(v))
 

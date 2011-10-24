@@ -90,34 +90,36 @@ blewis@illposed.net}
 
 \section{Introduction}
 
-I've been working with some large-ish text files of comma separated values
-(CSV) recently. The files are each over two gigabytes with about 20 million
-rows. My computer has plenty of memory for R to load each file.
+I've been working with some moderately-sized text files recently. The files are
+each over two gigabytes with about 20 million rows, with columns separated by
+commas (CSV) or tabs. My computer has plenty of memory for R to load each file,
+but it takes a while and I'm impatient.
 
-\noindent But, it takes a while.
-
-\noindent And I'm impatient.
-
-\noindent Now, I don't really need the entire data set in memory. I just
-need to filter the data a bit and then sample from the rows. I think that this
+Now, I don't really need the entire data set in memory for my work. I just need
+to filter the data a bit and then sample from the rows. I think that this
 situation is typical enough--wanting fast access to subsets of large text
 files--that I wrote this package for it.
 
 The {\tt lazy.frame} package lets me quickly and efficiently work with subsets
-from a text file without loading the entire file into memory. A {\tt lazy.frame}
-is a data frame promise. It presents a text file as a kind of simple data
-frame, but without first loading the file into memory. Lazy frames load
-data from their backing files on demand.
-They are essentially wrappers for the {\tt read.table} function
-with a few extra convenience functions. I probably should have called this
-``promise.frame,'' but I liked the sound of ``lazy.frame'' better.
+from a text file without loading the entire file into memory. A {\tt
+lazy.frame} is a data frame promise. It presents a text file as a kind of
+simple data frame, without first loading the file into memory. Lazy frames
+load data from their backing files on demand.  They are essentially wrappers
+for the {\tt read.table} function with a few extra convenience functions. I
+probably should have called this ``promise.frame,'' but I liked the sound of
+``lazy.frame'' better.
 
 There are several compelling R packages for working directly with file-backed
-data: The
+data: The \href{http://cran.r-project.org/web/packages/LaF/index.html}{LaF}
+package is quite similar to lazy.frames, reading data from CSV files on demand
+into data frames. But {\tt LaF} is not cross-platform, has more limited file
+handling, differs from the {\tt read.table} syntax,
+and most importantly lacks the filtering functions
+available in lazy frames.  The
 \href{http://cran.r-project.org/web/packages/bigmemory/index.html}{bigmemory}
 package by Emerson and Kane provides a memory mapped matrix object, free from R
-indexing constraints, and a comprehensive suite of fast analysis
-functions.  The nicely simple but powerful
+indexing constraints, and a comprehensive suite of fast analysis functions.
+The nicely simple and powerful (a superb combination!)
 \href{http://cran.r-project.org/web/packages/mmap/index.html}{mmap} package by
 Jeff Ryan defines a data frame-like memory mapped object. And the venerable
 \href{http://cran.r-project.org/web/packages/ff/index.html}{ff} package by
@@ -131,6 +133,11 @@ cheap)! My main irritation is the bottleneck incurred by parsing the entire
 data set, which isn't really avoided by the above packages (although 
 the packages do include methods to help expedite loading data from text files).
 
+A notable alternate method for efficiently processing very large text files
+splits the files manually into a set of files each containing a subset of
+rows of the original. Lazy frames provide the same capability, with much
+less work on the part of the user (no manual file processing).
+
 Of course, lazy frames aren't a panacea and have limitations discussed below.
 The benefit of using lazy frames diminishes as the size of the extracted
 subsets grow. Thus, lazy frames are very good for extracting relatively small
@@ -143,8 +150,8 @@ million or so rows.
 
 Lazy frames are {\it good} for very efficiently extracting small subsets from
 large delimited text files. They are {\it bad} for use by computations that
-need all of the data--for that either pay the price and load the data, or use
-one of the alternate file-backed methods discussed in the Introduction.
+need all of the data--for that either pay the price up frontand load the data,
+or use one of the alternate file-backed methods discussed in the Introduction.
 
 I can think of at least two applications that lazy frames are good for:
 \begin{enumerate}
@@ -156,11 +163,9 @@ and specialized bootstrapping.
 
 The second application is one approach to modeling an outcome that occurs only
 rarely in the data. Such problems arise in fraud detection and many other
-areas. Unfortunately, the trivial constant model that predicts that rare outcomes
-{\it never} occur is a pretty good model for imbalanced data, and most data mining
-techniques will simply return that. One approach to dealing with rare outcomes
-is to use a bootstrap technique that selects approximately equal resampled
-population sizes from the rare cases and majority cases.
+areas.  One approach to constructing models of rare outcomes is to use a
+bootstrap technique that selects approximately equal resampled population sizes
+from the rare cases and majority cases.
 
 There is another interesting aspect of the  second application related to
 parallel computation.  If the bootstrapped function is computationally
@@ -245,11 +250,11 @@ Listing 2 shows some examples of extracting subsets from the variable
 
 \subsection{Special comparison operations}
 
-Lazy frames provide a few very basic, but fast, comparison operations that
-apply to single columns. These operations are useful for basic data filtering.
+Lazy frames provide a few very basic comparison operations that
+work on single columns. The operations are useful for basic data filtering.
 These operations {\it only} apply to one column at a time and are limited to
 the comparisons: $<\qquad >\qquad \le\qquad \ge\qquad !=\qquad ==$ for
-numeric, integer, and character values only.
+numeric, integer, and character values.
 
 Recall that comparisons on data frame columns return a vector of Boolean values
 with the result of the comparison for each row.  Unlike data frames, lazy
@@ -280,7 +285,6 @@ frame behavior summarized here.
 
 \begin{itemize}
 \item Lazy frames are read only.
-\item They only support Unix line termination text files (for now).
 \item Column name indexing with \$ is not supported.
 \item Comparison operations that involve all rows are limited to
 basic comparisons for a single column only, and only for numeric,
@@ -289,29 +293,35 @@ integer, and character values.
 instead of a vector of Boolean values.
 \item Row names are supported, but they must be from a column in the data
 file (they can't be independently specified).
-\item Factor variables are supported, but to be useful the levels must
-be manually specified using the {\tt column\_attr} function.
-\item Indices use the numeric type instead of integer.
-\item Lazy frames can't be used directly by functions that expect data frames,
-but subsets from lazy frames can.
+\item Factor variables are supported--but for them to make sense, 
+the levels must be manually specified using the {\tt column\_attr} function.
+\item Lazy frames shouldn't be used directly by functions that expect
+data frames--use subsets of lazy frames instead.
 \end{itemize}
 
 \section{Examples}
 
 I present a few examples that compare indexing operations on lazy frames with
-indexing operations on data frames read in by {\tt read.table}. All experiments
-were conducted on a 2\,GHz, four CPU core AMD Opetron computer with 12\,GB of
-DDR-2 RAM running Ubuntu 9.10 GNU/Linux and R version 2.12.1. The data files
-resided on a Fusion-io ioXtreme solid state disk rated at 700\,MB/s data read
-rate and 80\,$\mu$s read latency in the first set of tests.  In order to
-minimize disk caching effects between tests, the command
+indexing operations on data frames read in by {\tt read.table}. The machines
+used in each example are described below.
+In order to minimize disk caching effects between tests, the command
 \begin{verbatim}
 echo 3 > /proc/sys/vm/drop_caches
 \end{verbatim}
 (wiping clean the Linux disk memory cache) was issued just before each test.
 
 \newpage
-\subsection{Uncompressed file examples}
+\subsection{A medium-sized example}
+
+The example used a CSV file with about 18 million rows and 27 columns.
+Two of the columns were character, three double precision numeric, and
+the remaining integer valued.
+
+The experiments in this section were conducted on a fairly old and slow 2\,GHz,
+four CPU core AMD Opetron computer with 12\,GB of DDR-2 RAM running Ubuntu 9.10
+GNU/Linux and R version 2.12.1. The data files resided on a Fusion-io ioXtreme
+solid state disk rated at 700\,MB/s data read rate and 80\,$\mu$s read latency
+in the first set of tests.
 
 I used {\tt read.table} with and without defining column classes to read the
 data into a data frame from an uncompressed file. As expected, specifying
@@ -331,7 +341,9 @@ seconds to extract the same row subset. Thus, we see the penalty of lazily
 loading data from the file--it took about twice as long to extract the subset
 in this example. But, we avoided the substantial initial load time almost
 completely. And, the maximum memory used by the R session was limited to about
-the 18\,MB memory required to hold the subset.
+the 18\,MB memory required to hold the subset, substantially reducing
+required memory overhead. Indeed, the lazy frame example runs fine on a
+machine with 4\,GB RAM.
 
 \lstset{
   morecomment=[l][\textbf]{  use},
@@ -438,79 +450,132 @@ Vcells 285348278 2177.1  649037152 4951.8 641872298 4897.1
 [1] 95166    27
 \end{lstlisting}
 
-\subsection{Compressed file examples}
-Large CSV and other text files are often compressed to save space. This
-section presents results for the same data file used in the last section
-compressed with:
-\begin{verbatim}
-gzip test.csv
-\end{verbatim}
-The Linux disk cache was flushed before each test as before. Because the
-storage medium was very fast in these tests, the overhead of decompressing
-the file outweighed the I/O gains of reading a smaller file from disk, and
-the overall results were uniformly slower. The reverse sometimes occurs
-with slow disk drives and fast computers, when disk I/O is a big bottleneck.
-
-The lazy frame subset extraction took about 100 seconds overall, the bulk
-of it during the subset operation (82\,s). The usual {\tt read.table} 
-data frame extraction took about 900 seconds, but as expected the subset
-operation took about the same amount of time as before (30\,s), since the
-data was fully loaded into memory. Overall memory usage in R was comparable
-to the last example, with lazy frames using vastly less RAM.
-
-\lstset{caption=Extract a subset from a lazy frame with a compressed file backing.}
-\begin{lstlisting}
-> library("lazy.frame")
-> t1 = proc.time()
-> x  = file.frame(file="test.csv.gz")
-> print(proc.time() - t1)
-   user  system elapsed 
- 17.370   0.480  17.886 
-
-> print(gc())
-         used (Mb) gc trigger (Mb) max used (Mb)
-Ncells 135413  7.3     350000 18.7   350000 18.7
-Vcells 129556  1.0     786432  6.0   531044  4.1
-> print(dim(x))
-[1] 17826159       27
-> 
-> t1 = proc.time()
-> y  = x[x[,20]>0, ]
-> print(proc.time() - t1)
-   user  system elapsed 
- 81.790   1.010  82.926 
-
-> print(dim(y))
-[1] 95166    27
-\end{lstlisting}
-
-
 \newpage
-\lstset{caption=Extract a subset from a data frame loaded from a compressed file with {\tt read.table}.}
+\subsection{A larger example}
+
+This example uses the concatenated airline data set from
+\href{http://stat-computing.org/dataexpo/2009/}
+{http://stat-computing.org/dataexpo/2009/}.  The data consists of flight
+arrival and departure details for all commercial flights within the USA, from
+October 1987 to April 2008. It's a relatively large example with about
+120 million rows and 29 columns taking up about 12\,GB (uncompressed).
+
+Tests were performed on an Amazon high-memory EC2 instance with 32\,GB RAM and four
+Intel Xeon CPU X5550 cores operating at 2.67\,GHz, running Ubuntu GNU/Linux
+11.04 and R version 2.12.1.  Except where indicated, the raw data file
+was located in a RAM-based tmpfs file system to completely eliminate disk
+performance effects.
+
+\lstset{caption=Extract a subset from a data frame loaded with {\tt read.table}
+with defined column classes.}
+
+Despite plenty of available memory, I was unable to load the data
+set into R which always failed after about 16 minutes with the error:
 \begin{lstlisting}
-> t1 = proc.time()
-> x  = read.table(file="test.csv.gz",header=FALSE,sep="\t",stringsAsFactors=FALSE)
-> print(proc.time() - t1)
-   user  system elapsed 
-840.880  31.270 872.976 
-
-> print(gc())
-            used   (Mb) gc trigger   (Mb)   max used   (Mb)
-Ncells    133089    7.2     667722   35.7     375686   20.1
-Vcells 285412427 2177.6  832603812 6352.3 1034547185 7893.0
-
-> print(dim(x))
-[1] 17826159       27
-
-> t1 = proc.time()
-> y  = x[x[,20]>0, ]
-> print(proc.time() - t1)
-   user  system elapsed 
- 27.860   2.410  30.263 
-
-> print(dim(y))
-[1] 95166    27
+Error in scan(file, what, nmax, sep, dec, quote, skip, nlines, na.strings,  :
+  could not allocate memory (2048 Mb) in C function 'R_AllocStringBuffer'
 \end{lstlisting}
+The same error occurred after moving 
+the uncompressed raw data file to disk in order to free up a maximum
+amount of RAM (nearly 32\,GB).
+
+Frustrated, I took the advice of the American Statistical Association
+in the Data Expo challenge and imported the data into sqlite to be read by
+R using the RSQLite package. This process is documented here:
+\href{http://stat-computing.org/dataexpo/2009/sqlite.html}
+{http://stat-computing.org/dataexpo/2009/sqlite.html}.
+The raw CSV file was loaded from RAM to eliminate disk I/O effects.
+
+The sqlite3 data load time without creating indices took about 18
+minutes.
+%real    19m53.965s
+%user    17m55.440s
+%sys     1m30.310s
+
+
+The sqlite3 data load time, including creation of a single index
+on the year field took about 26 minutes.
+%real    25m49.930s
+%user    23m39.590s
+%sys     2m59.050s
+
+% INDEXED TIMINGS
+%> library(RSQLite)
+%> ontime <- dbConnect("SQLite", dbname = "ontime.sqlite3")
+%> t1=proc.time();x = dbGetQuery(ontime, "select * from ontime where Year=2000"); print(proc.time()-t1)
+%   user  system elapsed 
+% 37.500   4.840  42.358 
+%2nd time
+%  user  system elapsed
+% 31.920   1.640  33.575
+
+
+
+Lazy frame
+%   user  system elapsed
+%  2.170   4.500   6.677  -- load time
+%   user  system elapsed
+%158.150  66.820 225.006  -- z = x[x[,"Year"]==2000,]
+
+%require(lazy.frame)
+%t1 = proc.time()
+%x = lazy.frame("./mem/airlines.csv",header=TRUE)
+%print(proc.time()-t1)
+
+%t2 = proc.time()
+%z=x[x[,1]==2000L,]
+%print(proc.time()-t1)
+
+%cat("SQLITE\n")
+%# And sqlite
+%library(RSQLite)
+%ontime <- dbConnect("SQLite", dbname = "ontime.sqlite3")
+%t1=proc.time();
+%x = dbGetQuery(ontime, "select * from ontime where Year=2000");
+%print(proc.time()-t1)
+
+
+
+require(lazy.frame)
+t1 = proc.time()
+x = lazy.frame("./mem/airlines.csv",header=TRUE)
+print(proc.time()-t1)
+
+t1 = proc.time()
+z=x[x[,1]==2000L,]
+print(proc.time()-t1)
+print(dim(z))
+
+print(gc())
+
+cat("SQLITE\n")
+# And sqlite
+library(RSQLite)
+ontime <- dbConnect("SQLite", dbname = "ontime.sqlite3")
+t1=proc.time();
+z = dbGetQuery(ontime, "select * from ontime where Year=2000");
+print(proc.time()-t1)
+print(dim(z))
+print(gc())
+
+
+
+LAZY FRAME
+   user  system elapsed 
+  2.200   4.500   6.699 
+   user  system elapsed 
+160.270  67.090 227.378 
+[1] 5683047      29
+           used  (Mb) gc trigger   (Mb)  max used   (Mb)
+Ncells   145399   7.8     350000   18.7    350000   18.7
+Vcells 93905286 716.5  295160237 2251.9 293661922 2240.5
+
+SQLITE WITHOUT INDEX
+Loading required package: DBI
+   user  system elapsed 
+ 68.890  22.280 150.336 
+[1] 5683047      29
+
 
 
 
