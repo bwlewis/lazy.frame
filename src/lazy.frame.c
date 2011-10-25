@@ -26,6 +26,7 @@ port_exp10 (double arg)
 typedef struct
 {
   FILE *f;			/* FILE pointer */
+  char path[BUFSZ];             /* file path */
   size_t *nl;			/* Byte position of newlines */
   size_t n;			/* Number of lines */
 /* file operators */
@@ -101,6 +102,7 @@ OPEN (SEXP F, SEXP GZ)
 #else
       f = (FILE *) gzopen (fname, "r");
       fm->f = f;
+      strncpy(fm->path, fname, BUFSZ);
       fm->close = &z_close;
       fm->seek = &z_seek;
       fm->rewind = &z_rewind;
@@ -112,6 +114,7 @@ OPEN (SEXP F, SEXP GZ)
     {
       f = fopen (fname, "rb");
       fm->f = f;
+      strncpy(fm->path, fname, BUFSZ);
       fm->close = &fclose;
       fm->seek = &fseek;
       fm->rewind = &rewind;
@@ -255,16 +258,16 @@ numlines (fmeta * fm)
 }
 
 inline char *
-get_col_val (char *buf, const char *delim, int col)
+get_col_val (char *buf, const char *delim, int col, char **saveptr)
 {
   int j = 0;
-  char *s = strtok (buf, delim);
+  char *s = strtok_r (buf, delim, saveptr);
   while (s != 0)
     {
       j++;
       if (j == col)
 	break;
-      s = strtok (NULL, delim);
+      s = strtok_r (NULL, delim, saveptr);
     }
   return s;
 }
@@ -432,7 +435,7 @@ WHICH (SEXP F, SEXP COL, SEXP ROWNAMES, SEXP SKIP, SEXP SEP, SEXP OP,
        SEXP VAL)
 {
   char buf[BUFSZ];
-  char *s, *r, *t;
+  char *s, *r, *t, *saveptr;
   size_t j, p, q;
   double x;
   int k, ix;
@@ -459,7 +462,7 @@ WHICH (SEXP F, SEXP COL, SEXP ROWNAMES, SEXP SKIP, SEXP SEP, SEXP OP,
       q = fm->nl[j + 1];
       fm->seek (fm->f, p + (j > 0), SEEK_SET);
       p = fm->read (buf, sizeof(char), q - p, fm->f);
-      s = get_col_val (buf, delim, col);
+      s = get_col_val (buf, delim, col, &saveptr);
       if (!s)
 	break;
       k = 0;
@@ -541,4 +544,129 @@ WHICH (SEXP F, SEXP COL, SEXP ROWNAMES, SEXP SKIP, SEXP SEP, SEXP OP,
   free (set);
   UNPROTECT (1);
   return ans;
+}
+
+
+
+typedef struct
+{
+  fmeta *fm;
+  int col;
+  const char *delim;
+  int skip;
+  int op;
+  int np;
+  void *val;
+  int valtype;
+  int start;
+  int end;
+// return values:
+  int *retval;
+  int nret;
+} pargs;
+
+void * twhich (void *);
+
+// XXX exp parallel version
+SEXP
+PWHICH (SEXP F, SEXP COL, SEXP ROWNAMES, SEXP SKIP, SEXP SEP, SEXP OP,
+        SEXP VAL, SEXP NP)
+{
+  int j;
+  pargs args;
+  SEXP ans = R_NilValue;
+  args.fm = (fmeta *) R_ExternalPtrAddr (F);
+  args.delim = CHAR (STRING_ELT (SEP, 0));
+  args.col = INTEGER (COL)[0];
+  int rownames = INTEGER (ROWNAMES)[0];
+  args.skip = INTEGER (SKIP)[0];
+  args.op = INTEGER (OP)[0];
+  args.np = INTEGER (NP)[0];
+  if (rownames > 0)
+    if (args.col >= rownames)
+      args.col++;
+  switch (TYPEOF (VAL))
+    {
+      case INTSXP:
+      args.valtype = 0;
+      args.val = (void *)(INTEGER(VAL));
+      break;
+      default: break;
+    }
+  args.start = args.skip;
+  args.end = args.fm->n;
+printf("1\n");
+  twhich((void *)&args);
+printf("2\n");
+for(j=0;j<args.nret;++j)
+  printf("retval %d = %d\n",j,args.retval[j]);
+printf("3\n");
+free(args.retval);
+  return ans;
+}
+
+// col, start, end are assumed to already be adjusted for skip, rownames, etc.
+// XXX designed for use in threads
+void * twhich (void *args)
+{
+  pargs *a = (pargs *)args;
+  char buf[BUFSZ];
+  FILE *f;
+  char *saveptr, *s;
+  int j,k,ix;
+  ssize_t p,q;
+  int setsz = IDXSZ;
+  int n = 0;
+  int *set = (int *)malloc(setsz * sizeof(int));
+printf("path=%s\n",a->fm->path);
+  f = fopen (a->fm->path, "rb");
+printf("twhich\n");
+printf("start %d end %d\n",a->start, a->end);
+  for(j=a->start;j < a->end;++j)
+   {
+      memset (buf, 0, BUFSZ);
+      p = a->fm->nl[j];
+      q = a->fm->nl[j + 1];
+printf("p=%ld q=%ld col=%d delim=%s op=%d\n",p,q,a->col,a->delim,a->op);
+      fseek (f, p + (j > 0), SEEK_SET);
+      p = fread (buf, sizeof(char), q - p, f);
+printf("buf=%s\n",buf);
+      s = get_col_val (buf, a->delim, a->col, &saveptr);
+printf("s=%s\t",s);
+      if (!s)
+	break;
+      k = 0;
+      switch (a->valtype)
+	{
+	case 0: // Integer
+	  ix = atoi (s);
+printf("ix=%d\t",ix);
+	  k = compare_int (ix, *((int *)a->val), a->op);
+printf("k=%d\t",k);
+          break;
+        default: break;
+        }
+printf("j=%d k=%d op=%d val=%d\n",j,k,a->op,*((int *)a->val));
+      if (k)
+	{
+	  set[n] = j - a->skip;
+	  n++;
+	  if (n < 0)
+	    {
+	      warning
+		("Too many matching elements--only first 2147483647 returned.");
+	      n = 2147483647;
+	      break;
+	    }
+	  if (n >= setsz)
+	    {
+	      setsz = setsz + IDXSZ;
+	      set = (int *) realloc (set, setsz * sizeof (int));
+	    }
+	}
+   }
+   fclose(f);
+   a->retval = set;
+   a->nret = n;
+   return 0;
 }
