@@ -366,8 +366,9 @@ the maximum memory required when reading the whole data set in with
 machine with 1\,GB RAM or less.
 
 The key to lazy frame's performance in this example is that we extract a {\it
-small} subset from a large table. Lazy frame's performance relative to other
-methods will degrade as the size of the extracted subset grows.
+small} subset from a large table from a fast storage medium.  Lazy frame's
+performance relative to other methods will degrade as the size of the extracted
+subset grows.
 
 \lstset{
   morecomment=[l][\textbf]{  use},
