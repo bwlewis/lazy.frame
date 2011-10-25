@@ -252,9 +252,13 @@ Listing 2 shows some examples of extracting subsets from the variable
 
 Lazy frames provide a few very basic comparison operations that
 work on single columns. The operations are useful for basic data filtering.
-These operations {\it only} apply to one column at a time and are limited to
-the comparisons: $<\qquad >\qquad \le\qquad \ge\qquad !=\qquad ==$ for
-numeric, integer, and character values.
+These operations {\it only} apply to one column at a time and are limited to:
+$<\qquad >\qquad \le\qquad \ge\qquad !=\qquad$, and $==$ for
+numeric, integer, and character values. Data within text files is naturally
+represented as character data. The data type of the comparison value determines
+how data from the text file is interpreted for the purpose of the comparison.
+The value to be compared against must be one of R's scalar
+{\tt integer}, {\tt numeric}, or {\tt character} types.
 
 Recall that comparisons on data frame columns return a vector of Boolean values
 with the result of the comparison for each row.  Unlike data frames, lazy
@@ -276,6 +280,16 @@ Listing 3 shows an example that picks out rows of the iris data set with
 \end{lstlisting}
 \end{Code}
 
+\subsection{Advanced options}
+Lazy frame's comparison operations use thread-level parallelism
+on POSIX systems. Parallel file access is only effective when there is
+enough system RAM to cache a large portion of the data file. Note,
+in particular, that parallel operations can degrade performance for large
+data files.
+
+The number of threads used for comparison operations may be examined or
+set with the standard R options interface for {\tt lazy.frame.threads}.
+
 
 \section{Quirks and Limitations}
 
@@ -290,7 +304,9 @@ frame behavior summarized here.
 basic comparisons for a single column only, and only for numeric,
 integer, and character values.
 \item Comparison operations return a set of indices like {\tt which}
-instead of a vector of Boolean values.
+instead of a vector of Boolean values. (This is for efficiency's sake--an
+entire column could be much much larger than the set of matching row
+numbers).
 \item Row names are supported, but they must be from a column in the data
 file (they can't be independently specified).
 \item Factor variables are supported--but for them to make sense, 
@@ -310,7 +326,6 @@ echo 3 > /proc/sys/vm/drop_caches
 \end{verbatim}
 (wiping clean the Linux disk memory cache) was issued just before each test.
 
-\newpage
 \subsection{A medium-sized example}
 
 The example used a CSV file with about 18 million rows and 27 columns.
@@ -347,6 +362,8 @@ machine with 4\,GB RAM.
 
 \lstset{
   morecomment=[l][\textbf]{  use},
+  morecomment=[l][\textbf]{ real},
+  morecomment=[l][\textbf]{ sys},
   morecomment=[l][\textbf]{[1]},
   morecomment=[l][\textbf]{648},
   morecomment=[l][\textbf]{443},
@@ -357,11 +374,14 @@ machine with 4\,GB RAM.
   morecomment=[l][\textbf]{ 840},
   morecomment=[l][\textbf]{ 81},
   morecomment=[l][\textbf]{ 17},
+  morecomment=[l][\textbf]{ 31},
+  morecomment=[l][\textbf]{163},
   morecomment=[l][\textbf]{Ncel},
   morecomment=[l][\textbf]{Vcel},
 }
 
-\lstset{caption=Extract a subset from a lazy frame.}
+\newpage
+\lstset{caption={Extract a subset from a lazy frame.}}
 \begin{lstlisting}
 > library("lazy.frame")
 > t1 = proc.time()
@@ -460,17 +480,17 @@ arrival and departure details for all commercial flights within the USA, from
 October 1987 to April 2008. It's a relatively large example with about
 120 million rows and 29 columns taking up about 12\,GB (uncompressed).
 
-Tests were performed on an Amazon high-memory EC2 instance with 32\,GB RAM and four
-Intel Xeon CPU X5550 cores operating at 2.67\,GHz, running Ubuntu GNU/Linux
-11.04 and R version 2.12.1.  Except where indicated, the raw data file
-was located in a RAM-based tmpfs file system to completely eliminate disk
+Tests were performed on an Amazon high-memory EC2 instance with 32\,GB RAM and
+four Intel Xeon CPU X5550 cores operating at 2.67\,GHz, running Ubuntu
+GNU/Linux 11.04 and R version 2.12.1.  Except where indicated, the raw data
+file was located in a RAM-based tmpfs file system to completely eliminate disk
 performance effects.
 
 \lstset{caption=Extract a subset from a data frame loaded with {\tt read.table}
 with defined column classes.}
 
 Despite plenty of available memory, I was unable to load the data
-set into R which always failed after about 16 minutes with the error:
+set directly into R, which always failed after about 16 minutes with the error:
 \begin{lstlisting}
 Error in scan(file, what, nmax, sep, dec, quote, skip, nlines, na.strings,  :
   could not allocate memory (2048 Mb) in C function 'R_AllocStringBuffer'
@@ -479,104 +499,127 @@ The same error occurred after moving
 the uncompressed raw data file to disk in order to free up a maximum
 amount of RAM (nearly 32\,GB).
 
-Frustrated, I took the advice of the American Statistical Association
+I took the advice of the American Statistical Association
 in the Data Expo challenge and imported the data into sqlite to be read by
 R using the RSQLite package. This process is documented here:
 \href{http://stat-computing.org/dataexpo/2009/sqlite.html}
 {http://stat-computing.org/dataexpo/2009/sqlite.html}.
 The raw CSV file was loaded from RAM to eliminate disk I/O effects.
 
-The sqlite3 data load time without creating indices took about 18
-minutes.
-%real    19m53.965s
-%user    17m55.440s
-%sys     1m30.310s
+The sqlite3 data load time without creating indices took about 20
+minutes. Once created, it took about 150 seconds to extract the
+subset corresponding to the year 2000 into a data frame shown
+in the example below (about 5 1/2 million rows).
+\newpage
+\lstset{caption=Setup the sqlite database.}
+\begin{lstlisting}
+cat << EOF > sqlite.script
+create table ontime (
+  Year int,
+  Month int,
+  DayofMonth int,
+  DayOfWeek int,
+  DepTime  int,
+  CRSDepTime int,
+  ArrTime int,
+  CRSArrTime int,
+  UniqueCarrier varchar(5),
+  FlightNum int,
+  TailNum varchar(8),
+  ActualElapsedTime int,
+  CRSElapsedTime int,
+  AirTime int,
+  ArrDelay int,
+  DepDelay int,
+  Origin varchar(3),
+  Dest varchar(3),
+  Distance int,
+  TaxiIn int,
+  TaxiOut int,
+  Cancelled int,
+  CancellationCode varchar(1),
+  Diverted varchar(1),
+  CarrierDelay int,
+  WeatherDelay int,
+  NASDelay int,
+  SecurityDelay int,
+  LateAircraftDelay int
+);
+.separator ,
+.import airline.csv ontime
+EOF
 
-
-The sqlite3 data load time, including creation of a single index
-on the year field took about 26 minutes.
-%real    25m49.930s
-%user    23m39.590s
-%sys     2m59.050s
-
-% INDEXED TIMINGS
-%> library(RSQLite)
-%> ontime <- dbConnect("SQLite", dbname = "ontime.sqlite3")
-%> t1=proc.time();x = dbGetQuery(ontime, "select * from ontime where Year=2000"); print(proc.time()-t1)
-%   user  system elapsed 
-% 37.500   4.840  42.358 
-%2nd time
-%  user  system elapsed
-% 31.920   1.640  33.575
-
-
-
-Lazy frame
-%   user  system elapsed
-%  2.170   4.500   6.677  -- load time
-%   user  system elapsed
-%158.150  66.820 225.006  -- z = x[x[,"Year"]==2000,]
-
-%require(lazy.frame)
-%t1 = proc.time()
-%x = lazy.frame("./mem/airlines.csv",header=TRUE)
-%print(proc.time()-t1)
-
-%t2 = proc.time()
-%z=x[x[,1]==2000L,]
-%print(proc.time()-t1)
-
-%cat("SQLITE\n")
-%# And sqlite
-%library(RSQLite)
-%ontime <- dbConnect("SQLite", dbname = "ontime.sqlite3")
-%t1=proc.time();
-%x = dbGetQuery(ontime, "select * from ontime where Year=2000");
-%print(proc.time()-t1)
-
-
-
-require(lazy.frame)
-t1 = proc.time()
-x = lazy.frame("./mem/airlines.csv",header=TRUE)
-print(proc.time()-t1)
-
-t1 = proc.time()
-z=x[x[,1]==2000L,]
-print(proc.time()-t1)
-print(dim(z))
-
-print(gc())
-
-cat("SQLITE\n")
-# And sqlite
-library(RSQLite)
-ontime <- dbConnect("SQLite", dbname = "ontime.sqlite3")
-t1=proc.time();
-z = dbGetQuery(ontime, "select * from ontime where Year=2000");
-print(proc.time()-t1)
-print(dim(z))
-print(gc())
-
-
-
-LAZY FRAME with ncpu=4
-   user  system elapsed 
-  2.200   4.500   6.699 
-   user  system elapsed 
-163.370  90.720 119.208 
-[1] 5683047      29
-           used  (Mb) gc trigger   (Mb)  max used   (Mb)
-Ncells   145399   7.8     350000   18.7    350000   18.7
-Vcells 93905286 716.5  295160237 2251.9 293661922 2240.5
-
-SQLITE WITHOUT INDEX
+time sqlite3 ontime.sqlite3 < sqlite.script
+ real    19m53.965s
+ user    17m55.440s
+ sys     1m30.310s
+\end{lstlisting}
+\lstset{caption=Extract a subset data frame from an sqlite database without indexing.}
+\begin{lstlisting}
+> library("RSQLite")
+Loading required package: RSQLite
 Loading required package: DBI
+> ontime <- dbConnect("SQLite", dbname = "ontime.sqlite3")
+> t1=proc.time();
+> x = dbGetQuery(ontime, "select * from ontime where Year=2000");
+> print(proc.time()-t1)
    user  system elapsed 
  68.890  22.280 150.336 
+> print(dim(x))
 [1] 5683047      29
+\end{lstlisting}
 
+Sqlite indexing can greatly improve performance at the expense of
+slower initial load times. I added an index on a
+single column "Year" for comparison as shown below.
+The sqlite3 data load time including creation of a single index
+on the year column took about 26 minutes.
+\lstset{caption=Creating the sqlite database with a single index.}
+\begin{lstlisting}
+echo "create index year on ontime(year);" >> sqlite.script
+time sqlite3 ontime_indexed.sqlite3 < sqlite.script
+ real    25m49.930s
+ user    23m39.590s
+ sys     2m59.050s
+\end{lstlisting}
+Once indexed, however, it's much faster to extract data from the
+sqlite database in R:
+\lstset{caption=Extracting a data frame from an indexed sqlite database.}
+\begin{lstlisting}
+> library("RSQLite")
+Loading required package: RSQLite
+Loading required package: DBI
+> ontime <- dbConnect("SQLite", dbname = "ontime_indexed.sqlite3")
+> t1=proc.time();
+> x = dbGetQuery(ontime, "select * from ontime where Year=2000");
+   user  system elapsed
+  31.920   1.640  33.575
+> print(dim(x))
+[1] 5683047      29
+\end{lstlisting}
 
+Lazy frames reduced the initial ``load'' time to about 7 seconds,
+and extract data more quickly than non-indexed sqlite databases,
+but generally quite a bit more slowly than indexed databases.
+It took about 120 seconds to extract the data frame corresponding
+to rows with year equal to 2000 (half a minute faster than
+sqlite without indexing, but almost four times slower than
+sqlite with indexing).
+\lstset{caption=Extract a subset from a lazy frame.}
+\begin{lstlisting}
+> require(lazy.frame)
+> t1 = proc.time()
+> x = lazy.frame("airlines.csv",header=TRUE)
+> print(proc.time()-t1)
+   user  system elapsed
+  2.170   4.500   6.677
 
+> options(lazy.frame.ncpu=4)
+> t2 = proc.time()
+> z=x[x[,1]==2000L,]
+> print(proc.time()-t1)
+   user  system elapsed 
+163.370  90.720 119.208 
+\end{lstlisting}
 
 \end{document}

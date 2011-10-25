@@ -1,11 +1,11 @@
 .onLoad = function(libname,pkgname)
 {
-  options(lazy.frame.ncpu=2L)
+  options(lazy.frame.threads=2L)
   options(lazy.frame.tempdir=tempdir)
 }
 .onUnload = function(libpath)
 {
-  options(lazy.frame.ncpu=c())
+  options(lazy.frame.threads=c())
   options(lazy.frame.tempdir=c())
 }
 
@@ -178,7 +178,7 @@ Ops.lazy.frame = function(e1,e2) {
   col = e1$which
   e1$which = NULL
   NP = tryCatch(
-         as.integer(options("lazy.frame.ncpu")),
+         as.integer(options("lazy.frame.threads")),
          error=function(e) 2L)
   if(is.null(NP) || is.na(NP) || length(NP)<1) NP = 2L
   OP <- switch(.Generic,"=="=1L,
