@@ -560,11 +560,11 @@ print(gc())
 
 
 
-LAZY FRAME
+LAZY FRAME with ncpu=4
    user  system elapsed 
   2.200   4.500   6.699 
    user  system elapsed 
-160.270  67.090 227.378 
+163.370  90.720 119.208 
 [1] 5683047      29
            used  (Mb) gc trigger   (Mb)  max used   (Mb)
 Ncells   145399   7.8     350000   18.7    350000   18.7

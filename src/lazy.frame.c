@@ -104,6 +104,10 @@ OPEN (SEXP F, SEXP GZ)
       error ("Compressed files not supported on Windows, sorry!");
 #else
       f = (FILE *) gzopen (fname, "r");
+      if(!f) {
+        free(fm);
+        error("Invalid file");
+      }
       fm->f = f;
       strncpy (fm->path, fname, BUFSZ);
       fm->close = &z_close;
@@ -116,6 +120,10 @@ OPEN (SEXP F, SEXP GZ)
   else
     {
       f = fopen (fname, "rb");
+      if(!f) {
+        free(fm);
+        error("Invalid file");
+      }
       fm->f = f;
       strncpy (fm->path, fname, BUFSZ);
       fm->close = &fclose;

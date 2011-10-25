@@ -1,10 +1,12 @@
 .onLoad = function(libname,pkgname)
 {
   options(lazy.frame.ncpu=2L)
+  options(lazy.frame.tempdir=tempdir)
 }
 .onUnload = function(libpath)
 {
   options(lazy.frame.ncpu=c())
+  options(lazy.frame.tempdir=c())
 }
 
 `.lazy.frame_finalizer` = function(x)
@@ -145,14 +147,14 @@
   if(sum(diff(j)-1)==0) {
     n  = as.integer(min(j) + x$internalskip)
     m  = as.integer(max(j) + x$internalskip - n + 1)
-    w = tempfile()
+    w = tempfile(tmpdir=options("lazy.frame.tempdir")[[1]]())
     b = .Call("RANGE",x$data,n,m,w)
     tmp = .getframe(x,w)
   } else {
     j = j + x$internalskip
     badj = which(j>nrow(x))
     if(length(badj)>0) j = j[-badj]
-    w = tempfile()
+    w = tempfile(tmpdir=options("lazy.frame.tempdir")[[1]]())
     b = .Call("LINES",x$data,as.integer(j),w)
     tmp = .getframe(x,w)
   }
