@@ -1,3 +1,12 @@
+.onLoad = function(libname,pkgname)
+{
+  options(lazy.frame.ncpu=2L)
+}
+.onUnload = function(libpath)
+{
+  options(lazy.frame.ncpu=c())
+}
+
 `.lazy.frame_finalizer` = function(x)
 {
   invisible(.Call("FREE",x))
@@ -51,7 +60,7 @@
    nl = .Call("NUMLINES",obj$data)
    n = min(nl,5)
    f = tempfile()
-   b = .Call("RANGE",obj$data,1,as.integer(n),f)
+   b = .Call("RANGE",obj$data,1L,as.integer(n),f)
    tmp = .getframe(obj,f,header=header,skip=skip)
    if(any(class(tmp)=="error")) {
      rm(obj)
@@ -134,7 +143,7 @@
 # A too-expensive check for sequential indices?
   tmp = c()
   if(sum(diff(j)-1)==0) {
-    n  = as.numeric(min(j) + x$internalskip)
+    n  = as.integer(min(j) + x$internalskip)
     m  = as.integer(max(j) + x$internalskip - n + 1)
     w = tempfile()
     b = .Call("RANGE",x$data,n,m,w)
@@ -144,7 +153,7 @@
     badj = which(j>nrow(x))
     if(length(badj)>0) j = j[-badj]
     w = tempfile()
-    b = .Call("LINES",x$data,as.numeric(j),w)
+    b = .Call("LINES",x$data,as.integer(j),w)
     tmp = .getframe(x,w)
   }
   if(any(class(tmp)=="error")) stop(tmp)
@@ -166,6 +175,10 @@
 Ops.lazy.frame = function(e1,e2) {
   col = e1$which
   e1$which = NULL
+  NP = tryCatch(
+         as.integer(options("lazy.frame.ncpu")),
+         error=function(e) 2L)
+  if(is.null(NP) || is.na(NP) || length(NP)<1) NP = 2L
   OP <- switch(.Generic,"=="=1L,
                          "!="=2L,
                          ">="=3L,
@@ -179,8 +192,7 @@ Ops.lazy.frame = function(e1,e2) {
                 as.integer(e1$row.names),
                 as.integer(e1$internalskip),
                 as.character(e1$sep),
-                OP,
-                e2)
+                OP, e2, NP)
 }
 
 `dim.lazy.frame` = function(x)

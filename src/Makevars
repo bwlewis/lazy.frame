@@ -1,2 +1,2 @@
-PKG_CFLAGS=
-PKG_LIBS=-lz
+PKG_CFLAGS=-Wall -pedantic
+PKG_LIBS=-lz -lpthread -lm
