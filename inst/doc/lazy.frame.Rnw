@@ -359,10 +359,11 @@ seconds to extract the same row subset using 3 threads.  With two threads, the
 example took about 30 seconds, and with only one just under 50 seconds.
 {\bf Lazy frame outperformed native data frame indexing in this example.}
 
-The maximum memory used by the R session using lazy.frames was limited to about
-the 18\,MB memory required to hold the subset, substantially reducing
-required memory overhead. Indeed, the lazy frame example runs fine on a
-machine with 4\,GB RAM.
+The maximum memory used by the R session using lazy frames was limited to about
+the 18\,MB memory required to hold the subset, about 300 times less than
+the maximum memory required when reading the whole data set in with
+{\tt read.table}. Indeed, the lazy frame example runs fine on a
+machine with 1\,GB RAM or less.
 
 The key to lazy frame's performance in this example is that we extract a {\it
 small} subset from a large table. Lazy frame's performance relative to other
@@ -389,12 +390,11 @@ methods will degrade as the size of the extracted subset grows.
   morecomment=[l][\textbf]{Vcel},
 }
 
-\newpage
 \lstset{caption={Extract a subset from a lazy frame.}}
 \begin{lstlisting}
 > library("lazy.frame")
 > t1 = proc.time()
-> x  = file.frame(file="test.csv")
+> x  = lazy.frame(file="test.csv")
 > print(proc.time() - t1)
    user  system elapsed
    2.34    2.05    4.39
