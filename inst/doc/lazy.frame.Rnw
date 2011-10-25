@@ -355,10 +355,9 @@ column had values greater than zero. It took about 27 seconds to extract the
 subset.
 
 Lazy frame took only about 4 seconds to ``load'' the same file, and about 23
-seconds to extract the same row subset with threading set to use 3 CPUs.  With
-two CPUs, the example took about 30 seconds, and with only one CPU just under
-50 seconds.  {\bf Lazy frame outperformed native data frame indexing in this
-example.}
+seconds to extract the same row subset using 3 threads.  With two threads, the
+example took about 30 seconds, and with only one just under 50 seconds.
+{\bf Lazy frame outperformed native data frame indexing in this example.}
 
 The maximum memory used by the R session using lazy.frames was limited to about
 the 18\,MB memory required to hold the subset, substantially reducing
