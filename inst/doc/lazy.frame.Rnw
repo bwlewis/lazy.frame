@@ -326,6 +326,9 @@ echo 3 > /proc/sys/vm/drop_caches
 \end{verbatim}
 (wiping clean the Linux disk memory cache) was issued just before each test.
 
+The first example presents a really optimal case for using lazy frames. The
+second example shows performance for a very large well-known example.
+
 \subsection{A medium-sized example}
 
 The example used a CSV file with about 18 million rows and 27 columns.
@@ -351,14 +354,20 @@ Once loaded, I extracted a subset of about 95 thousand rows in which the 20th
 column had values greater than zero. It took about 27 seconds to extract the
 subset.
 
-Lazy frame took only about 4 seconds to ``load'' the same file, and about 53
-seconds to extract the same row subset. Thus, we see the penalty of lazily
-loading data from the file--it took about twice as long to extract the subset
-in this example. But, we avoided the substantial initial load time almost
-completely. And, the maximum memory used by the R session was limited to about
+Lazy frame took only about 4 seconds to ``load'' the same file, and about 23
+seconds to extract the same row subset with threading set to use 3 CPUs.  With
+two CPUs, the example took about 30 seconds, and with only one CPU just under
+50 seconds.  {\bf Lazy frame outperformed native data frame indexing in this
+example.}
+
+The maximum memory used by the R session using lazy.frames was limited to about
 the 18\,MB memory required to hold the subset, substantially reducing
 required memory overhead. Indeed, the lazy frame example runs fine on a
 machine with 4\,GB RAM.
+
+The key to lazy frame's performance in this example is that we extract a {\it
+small} subset from a large table. Lazy frame's performance relative to other
+methods will degrade as the size of the extracted subset grows.
 
 \lstset{
   morecomment=[l][\textbf]{  use},
@@ -373,6 +382,7 @@ machine with 4\,GB RAM.
   morecomment=[l][\textbf]{ 40},
   morecomment=[l][\textbf]{ 840},
   morecomment=[l][\textbf]{ 81},
+  morecomment=[l][\textbf]{ 39},
   morecomment=[l][\textbf]{ 17},
   morecomment=[l][\textbf]{ 31},
   morecomment=[l][\textbf]{163},
@@ -398,11 +408,12 @@ Vcells 130910  1.0     786432  6.0   531925  4.1
 > print(dim(x))
 [1] 17826159       27
 
+> options(lazy.frame.threads=3)
 > t1 = proc.time()
 > y  = x[x[,20]>0, ]
 > print(proc.time() - t1)
    user  system elapsed
- 40.870  11.770  52.709
+ 39.680  13.590  23.428
 
 > print(dim(y))
 [1] 95166    27
@@ -620,6 +631,9 @@ sqlite with indexing).
 > print(proc.time()-t1)
    user  system elapsed 
 163.370  90.720 119.208 
+
+> print(dim(z))
+[1] 5683047      29
 \end{lstlisting}
 
 \end{document}
