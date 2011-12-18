@@ -495,7 +495,7 @@ Tests were performed on an Amazon high-memory EC2 instance with 32\,GB RAM and
 four Intel Xeon CPU X5550 cores operating at 2.67\,GHz, running Ubuntu
 GNU/Linux 11.04 and R version 2.12.1.  Except where indicated, the raw data
 file was located in a RAM-based tmpfs file system to completely eliminate disk
-performance effects.
+performance artefacts.
 
 \lstset{caption=Extract a subset from a data frame loaded with {\tt read.table}
 with defined column classes.}
@@ -515,7 +515,7 @@ in the Data Expo challenge and imported the data into sqlite to be read by
 R using the RSQLite package. This process is documented here:
 \href{http://stat-computing.org/dataexpo/2009/sqlite.html}
 {http://stat-computing.org/dataexpo/2009/sqlite.html}.
-The raw CSV file was loaded from RAM to eliminate disk I/O effects.
+The raw CSV file was loaded from RAM to eliminate disk I/O artefacts.
 
 The sqlite3 data load time without creating indices took about 20
 minutes. Once created, it took about 150 seconds to extract the
