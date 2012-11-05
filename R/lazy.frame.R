@@ -189,12 +189,13 @@ Ops.lazy.frame = function(e1,e2) {
                          "<"= 6L)
   if(!inherits(e1,"lazy.frame")) stop("Left-hand side must be lazy.frame object")
   if(is.null(col)) stop("Can only compare a single column")
-  .Call("WHICH",e1$data,
+  w = .Call("WHICH",e1$data,
                 as.integer(col),
                 as.integer(e1$row.names),
                 as.integer(e1$internalskip),
                 as.character(e1$sep),
                 OP, e2, NP)
+  w[w>0]
 }
 
 `dim.lazy.frame` = function(x)

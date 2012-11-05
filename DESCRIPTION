@@ -1,7 +1,7 @@
 Package: lazy.frame 
 Type: Package
 Title: Lazy frames: quickly extract subsets from large text files.
-Version: 0.0.2
+Version: 0.0.3
 Date: 2011-10-01
 Author: B. W. Lewis <blewis@illposed.net>
 Maintainer: B. W. Lewis <blewis@illposed.net>
