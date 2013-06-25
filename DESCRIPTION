@@ -6,7 +6,6 @@ Date: 2011-10-01
 Author: B. W. Lewis <blewis@illposed.net>
 Maintainer: B. W. Lewis <blewis@illposed.net>
 Description: A data frame promise interface to column-delimited text files.
-Depends: R (>= 2.5)
 License: LGPL-3
 LazyLoad: yes
 Packaged: 2011-10-19 21:35:30 UTC; blewis
