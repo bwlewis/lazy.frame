@@ -92,6 +92,44 @@ FREE (SEXP M)
 }
 
 SEXP
+REOPEN (SEXP M, SEXP GZ)
+{
+  FILE *f;
+  fmeta *fm = (fmeta *) R_ExternalPtrAddr (M);
+  int gz = INTEGER (GZ)[0];
+  if (!fm)
+    {
+      error ("Invalid external pointer");
+    }
+  const char *fname = fm->path;
+  if (gz)
+    {
+#ifdef WIN32
+      error ("Compressed files not supported on Windows, sorry!");
+#else
+      f = (FILE *) gzopen (fname, "r");
+      if (!f)
+        {
+          FREE (M);
+          error ("Invalid file");
+        }
+      fm->f = f;
+#endif
+    }
+  else
+    {
+      f = fopen (fname, "rb");
+      if (!f)
+        {
+          FREE (M);
+          error ("Invalid file");
+        }
+      fm->f = f;
+    }
+  return M;
+}
+
+SEXP
 OPEN (SEXP F, SEXP GZ)
 {
   FILE *f;
@@ -104,10 +142,11 @@ OPEN (SEXP F, SEXP GZ)
       error ("Compressed files not supported on Windows, sorry!");
 #else
       f = (FILE *) gzopen (fname, "r");
-      if(!f) {
-        free(fm);
-        error("Invalid file");
-      }
+      if (!f)
+        {
+          free (fm);
+          error ("Invalid file");
+        }
       fm->f = f;
       strncpy (fm->path, fname, BUFSZ);
       fm->close = &z_close;
@@ -120,10 +159,11 @@ OPEN (SEXP F, SEXP GZ)
   else
     {
       f = fopen (fname, "rb");
-      if(!f) {
-        free(fm);
-        error("Invalid file");
-      }
+      if (!f)
+        {
+          free (fm);
+          error ("Invalid file");
+        }
       fm->f = f;
       strncpy (fm->path, fname, BUFSZ);
       fm->close = &fclose;
@@ -224,7 +264,7 @@ numlines (fmeta * fm)
   nl = (size_t *) malloc (p * sizeof (size_t));
   fm->rewind (f);
   k = (fm->eof (f) != 0);       // XXX should check file error too but interface
-                                // differs between zlib and stdlib
+  // differs between zlib and stdlib
   q = 0;
   nl[0] = 0;
   while (k == 0)
@@ -581,7 +621,7 @@ void *twhich (void *);
  */
 SEXP
 WHICH (SEXP F, SEXP COL, SEXP ROWNAMES, SEXP SKIP, SEXP SEP, SEXP OP,
-        SEXP VAL, SEXP NP)
+       SEXP VAL, SEXP NP)
 {
   int k, j, h, n;
   pargs *args;

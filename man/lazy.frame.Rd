@@ -9,10 +9,10 @@ frames are useful for quickly and efficiently extracting subsets from large csv
 and other text files.  They support normal and gzip-compressed files.
 }
 \usage{
-lazy.frame(file, sep=",", gz=regexpr(".gz$",file)>0, skip=0L, stringsAsFactors=FALSE, header=FALSE, ...)
+lazy.frame(file, sep=",", gz=FALSE, skip=0L, stringsAsFactors=FALSE, header=FALSE, ...)
 }
 \arguments{
-  \item{file}{ A gzip-compressed or uncompressed text file.}
+  \item{file}{ A gzip-compressed or uncompressed text file, or another lazy.frame object.}
   \item{sep}{The column delimiter character.}
   \item{gz}{TRUE indicates gzip-compressed file, FALSE an uncompressed file.}
   \item{skip}{

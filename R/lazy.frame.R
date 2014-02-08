@@ -11,7 +11,7 @@
 
 `.lazy.frame_finalizer` = function(x)
 {
-  invisible(.Call("FREE",x))
+  invisible(.Call("FREE",x, PACKAGE="lazy.frame"))
 }
 
 `column_attr` = function(x, col, which)
@@ -34,15 +34,20 @@
   x
 }
 
-`lazy.frame` = function(file, sep=",", gz=regexpr(".gz$",file)>0,
+`lazy.frame` = function(file, sep=",", gz=FALSE,
                         skip=0L, stringsAsFactors=FALSE, header=FALSE, ...)
 {
    if(missing(file)) stop("'file' must be specified")
+   if("lazy.frame" %in% class(file))
+   {
+     x$data = .Call("REOPEN", file$data, as.integer(gz), PACKAGE="lazy.frame")
+     return(x)
+   }
    obj = new.env()
    obj$data=.Call("OPEN",
                   as.character(file),
                   as.integer(gz),
-                  PKG="lazy.frame")
+                  PACKAGE="lazy.frame")
    reg.finalizer(obj$data, .lazy.frame_finalizer, TRUE)
    obj$call = match.call()
    obj$row.names = 0
@@ -59,10 +64,10 @@
    obj$stringsAsFactors = stringsAsFactors
    obj$internalskip = as.integer(skip + header)
    obj$attrs = FALSE
-   nl = .Call("NUMLINES",obj$data)
+   nl = .Call("NUMLINES",obj$data, PACKAGE="lazy.frame")
    n = min(nl,5)
    f = tempfile()
-   b = .Call("RANGE",obj$data,1L,as.integer(n),f)
+   b = .Call("RANGE",obj$data,1L,as.integer(n),f, PACKAGE="lazy.frame")
    tmp = .getframe(obj,f,header=header,skip=skip)
    if(any(class(tmp)=="error")) {
      rm(obj)
@@ -148,14 +153,14 @@
     n  = as.integer(min(j) + x$internalskip)
     m  = as.integer(max(j) + x$internalskip - n + 1)
     w = tempfile(tmpdir=options("lazy.frame.tempdir")[[1]]())
-    b = .Call("RANGE",x$data,n,m,w)
+    b = .Call("RANGE",x$data,n,m,w, PACKAGE="lazy.frame")
     tmp = .getframe(x,w)
   } else {
     j = j + x$internalskip
     badj = which(j>nrow(x))
     if(length(badj)>0) j = j[-badj]
     w = tempfile(tmpdir=options("lazy.frame.tempdir")[[1]]())
-    b = .Call("LINES",x$data,as.integer(j),w)
+    b = .Call("LINES",x$data,as.integer(j),w, PACKAGE="lazy.frame")
     tmp = .getframe(x,w)
   }
   if(any(class(tmp)=="error")) stop(tmp)
@@ -194,7 +199,7 @@ Ops.lazy.frame = function(e1,e2) {
                 as.integer(e1$row.names),
                 as.integer(e1$internalskip),
                 as.character(e1$sep),
-                OP, e2, NP)
+                OP, e2, NP, PACKAGE="lazy.frame")
   w[w>0]
 }
 
