@@ -40,8 +40,8 @@
    if(missing(file)) stop("'file' must be specified")
    if("lazy.frame" %in% class(file))
    {
-     x$data = .Call("REOPEN", file$data, as.integer(gz), PACKAGE="lazy.frame")
-     return(x)
+     file$data = .Call("REOPEN", file$data, as.integer(gz), PACKAGE="lazy.frame")
+     return(file)
    }
    obj = new.env()
    obj$data=.Call("OPEN",
